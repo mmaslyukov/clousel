@@ -352,7 +352,7 @@ func (c *CarouselRunner) commandHandler(cmd any) {
 		play.CarouselId = ct.carouselId
 		play.EventId = ct.eventId.String()
 
-		c.broker.PublishQueue(play)
+		c.broker.PublishQueue(*play)
 	default:
 		logger.Error.Println("Type is unknown") // here v has type interface{}
 	}

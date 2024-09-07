@@ -72,6 +72,7 @@ func main3() {
 
 }
 func main() {
+	logger.Info.Printf("Starting")
 
 	db := persistency.NewPersistency()
 	brokerRunner := broker.NewBrokerRunner()
@@ -84,7 +85,7 @@ func main() {
 	go brokerRunner.Run()
 
 	router := api.Router(&carouselApi)
-	logger.Info.Printf("Starting")
+	logger.Info.Printf("Listening incomming connections")
 	http.ListenAndServe(config.GetServerDest(), router)
 
 }

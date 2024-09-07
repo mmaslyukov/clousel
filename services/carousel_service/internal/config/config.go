@@ -3,7 +3,7 @@ package config
 const (
 	sqlitePath       = "sqlite.db"
 	mqttUrl          = "tcp://192.168.0.150:1883"
-	serverDest       = "localhost:8080"
+	serverDest       = "localhost:8081"
 	rootTopicCloud   = "/clousel/cloud"
 	rootTopicCaursel = "/clousel/carousel"
 )

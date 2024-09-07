@@ -1,0 +1,53 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  /* width: 800px; */
+  /* height: 800px; */
+
+}
+
+.btn {
+  border: none;
+  color: white;
+  padding: 50px 100px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 30px 10px;
+  cursor: pointer;
+  font-family: "Impact";
+  font-size: 100px;
+  min-width: 35rem;
+  /* text-align: center; */
+}
+.btn__pay {
+  background-color: #39ac43ff;
+}
+
+.btn__play {
+  background-color: #71a6dbff;
+}
+
+.btn__play:active {
+  background-color: #2b6baaff;
+}
+
+.canvas_container {
+  padding-top: 50px;
+  max-width: fit-content;
+  margin: auto;
+  border-style: solid;
+}
+
+.button_container {
+  max-width: fit-content;
+  margin: auto;
+  border-style: solid;
+}

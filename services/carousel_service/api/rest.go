@@ -34,9 +34,9 @@ type Play struct {
 type Carousel struct {
 	CarouselId  string `json:"CarouselId"`
 	RoundTime   *int   `json:"RoundTime,omitempty"`
-	RoundsReady *int   `json:"RoundsReady,omitempty"`
-	Status      string `json:"RoundsReady,omitempty"`
-	Time        string `json:"RoundsReady,omitempty"`
+	RoundsReady *int   `json:"RoundsReady"`
+	Status      string `json:"Status"`
+	Time        string `json:"Time"`
 }
 
 func Router(carousel pch.CarouselInterface) *http.ServeMux {
@@ -69,6 +69,8 @@ func Router(carousel pch.CarouselInterface) *http.ServeMux {
 				Status:      data.Ptr().Status,
 				Time:        data.Ptr().Time,
 			}
+			logger.Debug.Printf("%+v", c)
+			w.Header().Add("Access-Control-Allow-Origin", "*")
 			json.NewEncoder(w).Encode(c)
 			w.WriteHeader(http.StatusOK)
 		})
@@ -131,6 +133,7 @@ func Router(carousel pch.CarouselInterface) *http.ServeMux {
 				return
 			}
 
+			w.Header().Add("Access-Control-Allow-Origin", "*")
 			w.WriteHeader(http.StatusOK)
 		})
 	router.HandleFunc("POST /carousel",

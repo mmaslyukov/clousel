@@ -162,7 +162,7 @@ func (b *BrokerRunner) commandHandler(cmd any) {
 		}
 		break
 	default:
-		logger.Error.Println("Type unknown") // here v has type interface{}
+		logger.Error.Printf("Type unknown: %+v", c) // here v has type interface{}
 		break
 	}
 }

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <link rel="stylesheet" href="styles.css" />
+  <script src="widget.js" defer></script>
+  <script>
+    window.onload = function () {
+
+
+      window.setTimeout(() => {location.reload();}, 1000);
+
+      var canvas = document.getElementById("myCanvas");
+
+      canvas.width = window.innerWidth;
+      if (window.innerWidth > window.innerHeight) {
+        canvas.width = 500;
+      }
+      canvas.height = canvas.width;//window.innerWidth;
+      console.log("inner: ", window.innerWidth)
+      //canvas.height = window.innerHeight / 2;
+      var widget = new Widget(canvas, canvas.width / 20, canvas.width / 3);
+      widget.gauge(15, 17).lable("Rounds");
+
+
+
+      var btn = document.getElementById("PlayBtn");
+      btn.addEventListener('click', function () {
+        console.log("Clicked");
+      });
+    }
+  </script>
+</head>
+
+<body>
+  <div class="canvas_container">
+    <canvas id="myCanvas" class="canvas"> </canvas>
+  </div>
+  <div class="button_container">
+    <button type="button" class="btn" id="PlayBtn">PLAY</button>
+  </div>
+  <div class="button_container">
+    <button type="button" class="btn btn--active" id="PayBtn">REFILL</button>
+  </div>
+</body>
+
+</html>

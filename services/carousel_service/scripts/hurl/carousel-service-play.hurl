@@ -1,4 +1,4 @@
-GET http://localhost:8080/carousel/play
+GET http://localhost:8081/carousel/play
 [QueryStringParams]
 CarouselId: 550e8400-e29b-41d4-a716-446655440000
 
