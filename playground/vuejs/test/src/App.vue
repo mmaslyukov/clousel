@@ -14,6 +14,7 @@ const buttons = reactive({
 var carouselId = "";
 //http://localhost:8081/carousel&CarouselId=550e8400-e29b-41d4-a716-446655440000
 async function playCarousel(id) {
+    // const url = "http://localhost:8081/carousel/play";
     const url = "http://localhost:8081/carousel/play?CarouselId=" + id;
     const response = await axios.get(url);
     if (response.status != 200) {
@@ -21,15 +22,36 @@ async function playCarousel(id) {
     }
     return true
 }
-async function fetchCarousel(id) {
-    const url = "http://localhost:8081/carousel?CarouselId=" + id;
-    console.log(url);
-    const response = await axios.get(url);
+
+async function refillCarousel(id) {
+    const json = JSON.stringify({
+        CarouselId: id,
+        Rounds: 3,
+    });
+    const url = "http://localhost:8081/carousel/refill";
+    const response = await axios.post(url, json);
     if (response.status != 200) {
         return false;
     }
-    const data = response.data;
-    console.log(response.data);
+    return true
+}
+
+async function fetchCarousel(id) {
+    const url = "http://localhost:8081/carousel?CarouselId=" + id;
+    console.log(url);
+    var data = {};
+    try {
+        const response = await axios.get(url);
+        if (response.status != 200) {
+            return false;
+        }
+        console.log(response.data);
+        data = response.data;
+    } catch (e) {
+        data.Status = "unknown"
+        data.rounds = 0;
+        data.RoundsReady = 0;
+    }
     if (data.RoundsReady > widgetData.max) {
         widgetData.max = data.RoundsReady;
     }
@@ -46,17 +68,6 @@ async function fetchCarousel(id) {
     return true;
 
 
-    //   .then(function (response) {
-    //     // handle success
-    //     console.log(response);
-    //   })
-    //   .catch(function (error) {
-    //     // handle error
-    //     console.log(error);
-    //   })
-    //   .finally(function () {
-    //     // always executed
-    //   });
 
 }
 
@@ -67,7 +78,7 @@ onMounted(() => {
     buttons.showRefill = false;
     buttons.showPlay = false;
     carouselId = window.location.href.split('/').at(-1);
-    fetchCarousel(carouselId);
+    fetchCarousel(carouselId); // TODO
 });
 
 function onClick() {
@@ -78,21 +89,29 @@ function onClick() {
     buttons.showPlay = !buttons.showRefill;
 }
 
-async function onEventPlayClick() {
+function onEventPlayClick() {
     // buttons.showRefill = !buttons.showRefill;
     console.log("play clicked ");
     playCarousel(carouselId).then(function (result) {
         if (result) {
-        setTimeout(() => {
-            fetchCarousel(carouselId)
-        }, 1000);
-    }
+            setTimeout(() => {
+                fetchCarousel(carouselId)
+            }, 1000);
+        }
 
     });
 }
 
 function onEventRefillClick() {
     console.log("refill clicked");
+    refillCarousel(carouselId).then(function (result) {
+        if (result) {
+            setTimeout(() => {
+                fetchCarousel(carouselId)
+            }, 1000);
+        }
+
+    });
 }
 
 </script>
@@ -101,11 +120,11 @@ function onEventRefillClick() {
 <script>
 import WidgetRounds from "./components/WidgetRounds.vue";
 import GeneralButton from './components/GeneralButton.vue';
-import StripeForm from './components/StripeForm.vue';
+// import StripeForm from './components/StripeForm.vue';
 export default {
     name: "App",
     components: {
-        StripeForm,
+        // StripeForm,
         WidgetRounds,
         GeneralButton,
     },
@@ -114,7 +133,7 @@ export default {
 </script>
 
 <template>
-    <StripeForm  />
+    <StripeForm />
     <WidgetRounds v-bind="widgetData" @click="onClick" />
     <GeneralButton v-bind="buttons" @play-clicked="onEventPlayClick" @refill-clicked="onEventRefillClick" />
 </template>
