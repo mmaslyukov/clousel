@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=1280, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <style>
+        h1 {
+            text-align: center;
+            font-family: "Impact";
+            margin-top: 4rem;
+            margin-bottom: 4rem;
+            font-size: 60px;
+
+        }
+
+        .button-div {
+            margin-top: 3em;
+            text-align: center;
+        }
+
+        .button {
+            font-family: "Impact";
+            font-size: 30px;
+            min-width: 7rem;
+            padding: 10px 30px;
+        }
+
+        .button:active {
+            background-color: rgb(152, 152, 152);
+        }
+
+
+        input[type=text] {
+            border: none;
+            border-bottom: 2px solid;
+            font-size: 25px;
+        }
+
+        .entry {
+            font-family: "Impact";
+            text-align: center;
+            margin-top: 1em;
+            margin-right: 1em;
+        }
+
+
+        .lable {
+            font-size: 25px;
+            display: inline-block;
+            text-align: right;
+            min-width: 5em;
+        }
+
+        .field {
+            display: inline-block;
+            text-align: left;
+            max-width: 8em;
+        }
+
+        .border {
+            border-style: solid;
+        }
+    </style>
+</head>
+<script>
+    var siteWidth = 1280;
+    var scale = 1;
+    console.log("screen.width:", screen.width, " scale:", scale);
+    document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=' + screen.width + ', initial-scale=' + scale + '');
+</script>
+
+<body>
+
+    <h1>CLOUSEL</h1>
+    <form action="/submit">
+        <div class="entry">
+            <div class="lable">
+                <label class="label" for="ssid">SSID:</label>
+            </div>
+            <input class="field" type="text" id="ssid" name="ssid"><br><br>
+        </div>
+        <div class="entry">
+            <div class="lable">
+                <label for="pswd">Password:</label>
+            </div>
+            <input class="field" type="text" id="pswd" name="pswd"><br><br>
+        </div>
+        <div class="button-div">
+            <input class="button" type="submit" value="Save">
+        </div>
+    </form>
+</body>
+</html>

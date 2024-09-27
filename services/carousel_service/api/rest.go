@@ -39,10 +39,26 @@ type Carousel struct {
 	Time        string `json:"Time"`
 }
 
+func setupCORS(w *http.ResponseWriter, req *http.Request) {
+	// logger.Debug.Printf("------------CORS--------------!!!")
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	// (*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	// (*w).Header().Set("Access-Control-Allow-Headers", "*")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Access-Control-Allow-Origin, Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
 func Router(carousel pch.CarouselInterface) *http.ServeMux {
 	router := http.NewServeMux()
+	// router.HandleFunc("OPTIONS /carousel/refill",
+	// 	func(w http.ResponseWriter, r *http.Request) {
+	// 		logger.Debug.Printf("-----------OPTIONS------------!!!")
+	// 		setupCORS(&w, r)
+	// 	})
 	router.HandleFunc("GET /carousel",
 		func(w http.ResponseWriter, r *http.Request) {
+			setupCORS(&w, r)
+			// logger.Debug.Printf("-----------READ------------!!!")
 			//TODO: go func(w http.ResponseWriter, r *http.Request) {...}
 			var qvalue []string
 			var ok bool
@@ -70,12 +86,13 @@ func Router(carousel pch.CarouselInterface) *http.ServeMux {
 				Time:        data.Ptr().Time,
 			}
 			logger.Debug.Printf("%+v", c)
-			w.Header().Add("Access-Control-Allow-Origin", "*")
+			//w.Header().Add("Access-Control-Allow-Origin", "*")
 			json.NewEncoder(w).Encode(c)
-			w.WriteHeader(http.StatusOK)
+			// w.WriteHeader(http.StatusOK) // not necessery since status is written automatically when writer is envoked
 		})
 	router.HandleFunc("GET /carousel/owned",
 		func(w http.ResponseWriter, r *http.Request) {
+			setupCORS(&w, r)
 			//TODO: go func(w http.ResponseWriter, r *http.Request) {...}
 			var qvalue []string
 			var ok bool
@@ -112,9 +129,11 @@ func Router(carousel pch.CarouselInterface) *http.ServeMux {
 		})
 	router.HandleFunc("GET /carousel/play",
 		func(w http.ResponseWriter, r *http.Request) {
+			setupCORS(&w, r)
 			var qvalue []string
 			var ok bool
 			// var err error
+			logger.Debug.Println(r.URL.Query())
 			if qvalue, ok = r.URL.Query()["CarouselId"]; !ok {
 				err := fmt.Errorf("Query is invalid")
 				logger.Error.Println(err)
@@ -133,11 +152,11 @@ func Router(carousel pch.CarouselInterface) *http.ServeMux {
 				return
 			}
 
-			w.Header().Add("Access-Control-Allow-Origin", "*")
 			w.WriteHeader(http.StatusOK)
 		})
 	router.HandleFunc("POST /carousel",
 		func(w http.ResponseWriter, r *http.Request) {
+			setupCORS(&w, r)
 			decoder := json.NewDecoder(r.Body)
 			var t Register
 			err := decoder.Decode(&t)
@@ -167,6 +186,7 @@ func Router(carousel pch.CarouselInterface) *http.ServeMux {
 		})
 	router.HandleFunc("DELETE /carousel",
 		func(w http.ResponseWriter, r *http.Request) {
+			setupCORS(&w, r)
 			var qvalue []string
 			var ok bool
 			if qvalue, ok = r.URL.Query()["CarouselId"]; !ok {
@@ -188,6 +208,9 @@ func Router(carousel pch.CarouselInterface) *http.ServeMux {
 		})
 	router.HandleFunc("POST /carousel/refill",
 		func(w http.ResponseWriter, r *http.Request) {
+			setupCORS(&w, r)
+			// logger.Debug.Printf("-----------REFILL-------------!!!")
+
 			decoder := json.NewDecoder(r.Body)
 			var t Refill
 			_ = decoder.Decode(&t)
@@ -204,8 +227,7 @@ func Router(carousel pch.CarouselInterface) *http.ServeMux {
 				w.Write([]byte(err.Error()))
 				return
 			}
-			w.WriteHeader(http.StatusOK)
-
+			// w.WriteHeader(http.StatusOK)
 		})
 
 	return router
