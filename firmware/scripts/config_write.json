@@ -1,0 +1,13 @@
+{
+  "Type": "MessageCommand",
+  "CarouselId": "550e8400-e29b-41d4-a716-446655440000",
+  "EventId": "cedb3510-c87f-4f7d-a190-2f1f8412ff29",
+  "Command": "ConfigWrite",
+  "Config": {
+      "BrokerUrl": "mqtt://192.168.0.150:1883",
+      "BrokerUsername": "CLOUSEL",
+      "BrokerPassword": "123wqeqwsaddsa",
+      "CoinPulseCnt": 1,
+      "CoinPulseDur": 100
+  }
+}
