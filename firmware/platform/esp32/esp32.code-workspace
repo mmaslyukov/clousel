@@ -16,7 +16,7 @@
 			"path": "../../service"
 		},
 		{
-			"path": "../../vscode-delme"
+			"path": "../../scripts"
 		}
 	],
 	"settings": {

@@ -390,6 +390,60 @@ void button_run(Button *btn)
   }
 }
 
+struct ScenarioMaker : public strategy::IScenarioMaker
+{
+  ScenarioMaker(const Timestamp &ts, const core::logger::ILogger &logger, infra::Config &config): _ts(ts), _logger(logger), _config(config) {}
+  virtual strategy::StepRunner &make() const override
+  {
+    // static MyGpio coin_pin("coin-ctrl", 1, logger);
+    const infra::CoinPulseProps *props = _config.coin_pulse_props();
+    if (!props->is_valid())
+    {
+      _config.persistency().reset_default(infra::Config::PersistencyId::COIN_PULSE_PROPS);
+    }
+
+    _logger.inf().log("TAG", "count:%d, duration:%d", props->count, props->duration);
+
+    static MyGpio coin_pin("coin-out", 1, _logger);
+
+    static strategy::StepWait swt(props->duration, _ts);
+    static strategy::StepActuatorOff saoff(coin_pin);
+    static strategy::StepActuatorOn saon(coin_pin);
+    static strategy::IStep *st[17];
+    memset(st, 0, sizeof(st));
+
+    for (uint8_t count = 0, index = 0; count < props->count; count++)
+    {
+      if (index < sizeof(st) / sizeof(st[0]))
+      {
+        st[index++] = &saon;
+      }
+      if (index < sizeof(st) / sizeof(st[0]))
+      {
+        st[index++] = &swt;
+      }
+      if (index < sizeof(st) / sizeof(st[0]))
+      {
+        st[index++] = &saoff;
+      }
+      if (index < sizeof(st) / sizeof(st[0]))
+      {
+        st[index++] = &swt;
+      }
+    }
+
+    static strategy::StepRunner step_runner(st, sizeof(st) / sizeof(st[0]));
+    return step_runner;
+  }
+
+private:
+  const Timestamp &_ts;
+  const core::logger::ILogger &_logger;
+  infra::Config &_config;
+};
+
+
+
 void _run(service::mode::ModeService *modsvc, infra::Status *status, service::coin::CoinService<COIN_SCV_CAP> *coinsvc)
 {
   while (1)
@@ -400,10 +454,11 @@ void _run(service::mode::ModeService *modsvc, infra::Status *status, service::co
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 }
+
 #include <service/coin/messages/command.h>
-int main()
+int platground_json_parsers()
 {
-  service::coin::msg::ResponseConfig rc("321", "123", "", service::coin::msg::Config(1, 100), 1);
+  service::coin::msg::ResponseConfig rc("321", "123", "", service::coin::msg::Config(), 1);
   
   char buf[256];
   rc.dump(buf, sizeof(buf));
@@ -436,7 +491,7 @@ int main()
   return 0;
 
 }
-int mai1n()
+int main()
 {
   using namespace core::logger;
 
@@ -519,7 +574,14 @@ int mai1n()
       &saof,
   };
   strategy::StepRunner step_runner(st, sizeof(st) / sizeof(st[0]));
-  service::coin::CoinService<COIN_SCV_CAP> coinsvc(broker, status, step_runner, logger, ts, config);
+        // constexpr CoinService(IPortAdapterBroker &broker,
+        //                     IPortAdapterStatus &status,
+        //                     const strategy::IScenarioMaker &scenario_maker,
+        //                     const core::logger::ILogger &logger,
+        //                     const core::ITimestamp &ts,
+        //                     IPortAdapterConfig &config)
+  
+  service::coin::CoinService<COIN_SCV_CAP> coinsvc(broker, status, ScenarioMaker(ts,logger,config), logger, ts, config);
   broker.add_subscriber(&coinsvc, coinsvc.sub_topic());
   // broker.add_subscriber(&coinsvc, config.root_sub_topic());
 
