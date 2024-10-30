@@ -3,7 +3,9 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+
 #include "../i_timestamp.h"
+#include "i_logger_system.h"
 #include "verbosity.h"
 #include "config.h"
 
@@ -28,41 +30,41 @@ namespace core
           bool tag = false,
           bool enabled = true)
           : _config(config), _sys(system), _timestamp(timestamp), _tag(tag), _enabled(enabled) {}
-      virtual void log(const char *tag, const char *format, ...) const
+      virtual void log(const char *tag, const char *format, ...) const override
       {
         if (_enabled)
         {
           size_t shift = 0;
-          const char *verbosity = _config.verbosity.name();
-          if (verbosity)
-          {
-            shift += snprintf((char *)&_config.buffer[shift],
-                              _config.size - shift, "%s ", verbosity);
-          }
+          // const char *verbosity = _config.verbosity.name();
+          // if (verbosity)
+          // {
+          //   shift += snprintf((char *)&_config.buffer[shift],
+          //                     _config.size - shift, "%s ", verbosity);
+          // }
 
-          size_t ts = _timestamp.get();
-          if (ts > 0)
-          {
-            shift += snprintf((char *)&_config.buffer[shift],
-                              _config.size - shift, "%zu ", ts);
-          }
+          // size_t ts = _timestamp.get();
+          // if (ts > 0)
+          // {
+          //   shift += snprintf((char *)&_config.buffer[shift],
+          //                     _config.size - shift, "%zu ", ts);
+          // }
 
-          if (_tag)
-          {
-            shift += snprintf((char *)&_config.buffer[shift],
-                              _config.size - shift, "<%s> ", tag);
-          }
+          // if (_tag)
+          // {
+          //   shift += snprintf((char *)&_config.buffer[shift],
+          //                     _config.size - shift, "<%s> ", tag);
+          // }
 
           va_list args;
           va_start(args, format);
           shift += vsnprintf((char *)&_config.buffer[shift],
                              _config.size - shift, format, args);
           va_end(args);
-          _sys.output(_config.verbosity, tag, _config.buffer, shift);
+          _sys.output(_config.verbosity,  _timestamp.get(), tag, _config.buffer, shift);
         }
       }
-      virtual void enable() { _enabled = true; };
-      virtual void disable() { _enabled = false; }
+      virtual void enable() override { _enabled = true; };
+      virtual void disable() override { _enabled = false; }
 
     private:
       const Configuration &_config;

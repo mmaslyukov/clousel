@@ -5,7 +5,7 @@ namespace service
 {
   namespace coin
   {
-    struct IPortControllerBroker : public broker::IBrokerListener
+    struct IPortControllerBroker : public broker::IBrokerMessageListener
     {
 
     };

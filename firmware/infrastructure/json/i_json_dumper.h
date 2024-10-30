@@ -4,6 +4,6 @@ namespace infra
 {
   struct IJsonDumper
   {
-    virtual bool dump(char *json_str, size_t cap) const = 0;
+    virtual size_t dump(char *json_str, size_t cap) const = 0;
   };
 }

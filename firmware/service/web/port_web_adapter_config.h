@@ -8,10 +8,10 @@ namespace service
   {
     struct IPortAdapterConfig
     {
-      virtual const bool set_wifi_config_station(const infra::WifiSettingsN &settings) = 0;
-      virtual const bool set_wifi_config_softap(const infra::WifiSettingsN &settings) = 0;
+      virtual bool set_wifi_config_station(const infra::WifiSettingsN &settings) = 0;
+      virtual bool set_wifi_config_softap(const infra::WifiSettingsN &settings) = 0;
       virtual bool load() const = 0;
       virtual bool save() const = 0;
-    }
+    };
   }
 }

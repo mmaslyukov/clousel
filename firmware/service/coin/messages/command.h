@@ -30,22 +30,23 @@ namespace service
     {
       struct Command : public infra::IJsonParser, public infra::IJsonDumper
       {
-        Command()
+        constexpr Command()
             : carousel_id("CarouselId"),
               event_id("EventId"),
               type("Type"),
               command("Command"),
               sequence_num("SequenceNum") {}
 
-        virtual bool parse(const char *json_str) override
+        virtual bool parse(const char *json_str, size_t len) override
         {
           jsmn_parser p;
           jsmntok_t t[64];
           int32_t tokens_count = 0;
           jsmn_init(&p);
+          bool res = true;
           do
           {
-            if ((tokens_count = jsmn_parse(&p, json_str, strlen(json_str), t, sizeof(t) / sizeof(t[0]))) < 0)
+            if ((tokens_count = jsmn_parse(&p, json_str, len, t, sizeof(t) / sizeof(t[0]))) < 0)
             {
               break;
             }
@@ -58,22 +59,22 @@ namespace service
             {
               if (infra::jsoneq(json_str, &t[i], carousel_id.name) == 0)
               {
-                carousel_id.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
+                res = res && carousel_id.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
                 i++;
               }
               else if (infra::jsoneq(json_str, &t[i], event_id.name) == 0)
               {
-                event_id.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
+                res = res && event_id.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
                 i++;
               }
               else if (infra::jsoneq(json_str, &t[i], type.name) == 0)
               {
-                type.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
+                res = res && type.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
                 i++;
               }
               else if (infra::jsoneq(json_str, &t[i], command.name) == 0)
               {
-                command.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
+                res = res && command.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
                 i++;
               }
               else if (infra::jsoneq(json_str, &t[i], sequence_num.name) == 0)
@@ -82,24 +83,31 @@ namespace service
                 i++;
               }
             }
-            return true;
           } while (false);
-          return false;
+          return res;
         }
-        virtual bool dump(char *json_str, size_t cap) const override
+        virtual size_t dump(char *json_str, size_t cap) const override
         {
+          int shift = 0;
           if (json_str)
           {
-            size_t len = snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":"%s","%s":"%s","%s":%d})",
+            shift = snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":"%s","%s":"%s","%s":%d})",
                                   carousel_id.name, carousel_id.value.data(),
                                   event_id.name, event_id.value.data(),
                                   type.name, type.value.data(),
                                   command.name, command.value.data(),
-                                  sequence_num.name, sequence_num.value);
+                                  sequence_num.name, (int)sequence_num.value);
             //  printf("cap:%d, len:%d\n", cap, len);
-            return len > cap - 1 ? false : true;
           }
-          return false;
+          return shift;
+        }
+        void clear()
+        {
+          carousel_id.value.clear();
+          event_id.value.clear();
+          type.value.clear();
+          command.value.clear();
+          sequence_num.value = 0;
         }
 
         infra::Named<CarouselIdContainer> carousel_id;

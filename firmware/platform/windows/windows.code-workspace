@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"chrono": "cpp",
+			"xthread": "cpp",
+			"memory": "cpp",
+			"algorithm": "cpp",
+			"cmath": "cpp",
+			"new": "cpp"
+		}
+	}
+}

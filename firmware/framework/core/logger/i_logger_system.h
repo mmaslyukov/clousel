@@ -10,7 +10,7 @@ namespace core
   {
    struct ILoggerSystem
     {
-      virtual void output(const Verbosity &verbosity, const char *tag, const char *data, size_t size) const = 0;
+      virtual void output(const Verbosity &verbosity, size_t tsms, const char *tag, const char *data, size_t size) const = 0;
     };
   }
 }

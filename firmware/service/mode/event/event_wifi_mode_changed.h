@@ -17,13 +17,25 @@ namespace service
           return "wifi.mode.changed";
         }
 
-        bool station() const
+        bool is_station() const
         {
           return _station;
         }
-        bool sofap() const
+        bool is_sofap() const
         {
           return _softap;
+        }
+        static inline EventWifiModeChanged to_station()
+        {
+          return EventWifiModeChanged(true, false);
+        }
+        static inline EventWifiModeChanged to_softap()
+        {
+          return EventWifiModeChanged(false, true);
+        }
+        static inline EventWifiModeChanged to_none()
+        {
+          return EventWifiModeChanged(false, false);
         }
 
       private:

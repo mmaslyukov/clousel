@@ -1,0 +1,57 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../framework"
+		},
+		{
+			"path": "../../infrastructure"
+		},
+		{
+			"path": "../../page"
+		},
+		{
+			"path": "../../service"
+		},
+		{
+			"path": "../../vscode-delme"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"cstddef": "cpp",
+			"format": "cpp",
+			"charconv": "cpp",
+			"memory": "cpp",
+			"regex": "cpp",
+			"type_traits": "cpp",
+			"vector": "cpp",
+			"istream": "cpp",
+			"*.tcc": "cpp",
+			"chrono": "cpp",
+			"optional": "cpp",
+			"ratio": "cpp",
+			"system_error": "cpp",
+			"array": "cpp",
+			"functional": "cpp",
+			"tuple": "cpp",
+			"utility": "cpp",
+			"xlocmon": "cpp",
+			"xtr1common": "cpp",
+			"cstdint": "cpp",
+			"xstring": "cpp",
+			"xtree": "cpp",
+			"xlocale": "cpp",
+			"memory_resource": "cpp",
+			"cstdlib": "c",
+			"future": "cpp",
+			"typeinfo": "cpp",
+			"string": "cpp",
+			"string_view": "cpp",
+			"span": "cpp",
+			"xutility": "cpp"
+		}
+	}
+}

@@ -48,7 +48,7 @@ namespace infra
 
     virtual void led_coin_blink() override
     {
-      // _logger.dbg().log(TAG, "led coin-blink");
+      _logger.dbg().log(TAG, "led coin-blink");
       _led_coin_ts = _ts.get() + LED_COIN_BLINK_MS;
     }
 
@@ -73,7 +73,7 @@ namespace infra
     core::io::IActuator<bool> &_led_wifi_station_connected;
     size_t _led_coin_ts;
     static constexpr const char *TAG = "status";
-    static constexpr size_t LED_COIN_BLINK_MS = 1500;
+    static constexpr size_t LED_COIN_BLINK_MS = 1000;
   };
 
 } // namespace infra

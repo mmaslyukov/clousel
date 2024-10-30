@@ -48,31 +48,31 @@ namespace core
         if (_enabled)
         {
           size_t shift = 0;
-          const char *verbosity = _config.verbosity.name();
-          if (verbosity)
-          {
-            shift += snprintf((char *)&_config.buffer[shift],
-                              _config.size - shift, "%s ", verbosity);
-          }
+          // const char *verbosity = _config.verbosity.name();
+          // if (verbosity)
+          // {
+          //   shift += snprintf((char *)&_config.buffer[shift],
+          //                     _config.size - shift, "%s ", verbosity);
+          // }
 
-          size_t ts = _timestamp.get();
-          if (ts > 0)
-          {
-            shift += snprintf((char *)&_config.buffer[shift],
-                              _config.size - shift, "%zu ", ts);
-          }
+          // size_t ts = _timestamp.get();
+          // if (ts > 0)
+          // {
+          //   shift += snprintf((char *)&_config.buffer[shift],
+          //                     _config.size - shift, "%zu ", ts);
+          // }
 
-          if (_tag)
-          {
-            shift += snprintf((char *)&_config.buffer[shift],
-                              _config.size - shift, "<%s> ", tag);
-          }
+          // if (_tag)
+          // {
+          //   shift += snprintf((char *)&_config.buffer[shift],
+          //                     _config.size - shift, "<%s> ", tag);
+          // }
 
           shift += snprintf((char *)&_config.buffer[shift],
                             _config.size - shift, "%d|", static_cast<int>(size));
 
           size_t text_limit = _config.size - 4; // one for \0 and three for dots
-          size_t actual_size = size > _config.size - shift ? _config.size - shift : size;
+          // size_t actual_size = size > _config.size - shift ? _config.size - shift : size;
           for (size_t i = 0; (shift < _config.size) && (i < size); i++)
           {
             if (shift < text_limit)
@@ -87,7 +87,7 @@ namespace core
             }
           }
 
-          _sys.output(_config.verbosity, tag, _config.buffer, shift);
+          _sys.output(_config.verbosity,  _timestamp.get(), tag, _config.buffer, shift);
         }
       }
 

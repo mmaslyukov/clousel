@@ -11,10 +11,11 @@ namespace core
     
     struct ILogger
     {
-      virtual const IPrintable &dbg() const = 0;
       virtual const IPrintable &err() const = 0;
-      virtual const IPrintable &inf() const = 0;
       virtual const IPrintable &wrn() const = 0;
+      virtual const IPrintable &inf() const = 0;
+      virtual const IPrintable &dbg() const = 0;
+      virtual const IPrintable &vrb() const = 0;
       virtual const IDumpable &raw() const = 0;
     };
 

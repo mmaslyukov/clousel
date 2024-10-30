@@ -1,18 +1,23 @@
 #pragma once
 #include <stdint.h>
 #include <cstring>
+#include <framework/util/util.h>
+
 namespace infra
 {
   template <size_t N>
   class CharContainer
   {
   public:
-    constexpr CharContainer() : _value{0}, _len(0) {} // set the first el as '\0'
-    CharContainer(const char *value)
+    constexpr CharContainer() : _len(0), _value{0} {} // set the first el as '\0'
+    CharContainer(const char *value) : _len(0)
     {
       if (value)
       {
-        _len = strcpy_s(_value, sizeof(_value), value);
+        if (!core::util::strcpy_s(_value, capacity(), value))
+        {
+          _len = strlen(value);
+        }
       }
     }
     const char *data() const
@@ -23,6 +28,10 @@ namespace infra
     {
       return _value;
     }
+    size_t len() const
+    {
+      return _len;
+    }
     bool eq(const char *str)
     {
       return strcmp(_value, str) == 0 ? true : false;
@@ -32,10 +41,15 @@ namespace infra
     {
       return _len == 0;
     }
+    void clear()
+    {
+      memset(_value, 0, capacity());
+      _len = 0;
+    }
 
     bool append(const char *data)
     {
-      if (strlen(len) < capacity())
+      if (strlen(_len) < capacity())
       {
         _len += snprintf(&_value[_len], capacity(), "%s", data);
       }
@@ -45,11 +59,14 @@ namespace infra
       }
       return false;
     }
+
     bool replace(const char *data)
     {
-      if (strlen(len) < capacity())
+      if (strlen(data) < capacity())
       {
-        _len = strcpy_s(_value, capacity(), data);
+        clear();
+        core::util::strcpy_s(_value, capacity(), data);
+        _len = strlen(data);
         return true;
       }
       else
@@ -57,11 +74,14 @@ namespace infra
         return false;
       }
     }
+
     bool replace(const char *data, const size_t len)
     {
       if (len < capacity())
       {
-        _len = memcpy_s(_value, capacity(), data, len);
+        clear();
+        core::util::mmemcpy_s(_value, capacity(), data, len);
+        _len = len;
         return true;
       }
       else
@@ -75,7 +95,7 @@ namespace infra
     }
 
   private:
-    char _value[N];
     size_t _len;
+    char _value[N];
   };
 }

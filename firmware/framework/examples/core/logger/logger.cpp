@@ -13,9 +13,9 @@ class LoggerSystem : public core::logger::ILoggerSystem, public core::ITimestamp
 {
 public:
   virtual size_t get() const override { return 0; };
-  virtual void output(const core::logger::Verbosity &verbosity, const char *tag, const char *data, size_t size) const override
+  virtual void output(const core::logger::Verbosity &verbosity, size_t tsms, const char *tag, const char *data, size_t size) const override
   {
-    printf("%d %s\n", verbosity.id(), data);
+    printf("%s (%zu) <%s> %s\n", verbosity.name(), tsms, tag, data);
   };
 };
 
@@ -42,6 +42,7 @@ int main()
       Printable(Configuration(buff, sizeof(buff), Verbosity("W")), ls, ts, true),
       Printable(Configuration(buff, sizeof(buff), Verbosity("I")), ls, ts, true),
       Printable(Configuration(buff, sizeof(buff), Verbosity("D")), ls, ts, true),
+      Printable(Configuration(buff, sizeof(buff), Verbosity("V")), ls, ts, true),
       Dumpable(Configuration(buff, sizeof(buff), Verbosity("D")), ls, ts , true));
   logger.raw().dump("buf", (uint8_t*)buff, 210);
   logger.err().log("test", "Hello Johny %d times", 5);

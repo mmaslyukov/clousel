@@ -1,0 +1,11 @@
+menu "Project Configuration"
+    config COIN_LED
+        int "Coin LED number"
+        range 0 255
+        default 2
+
+    config COIN_OUT
+        int "Coin OUT number"
+        range 0 255
+        default 15
+endmenu

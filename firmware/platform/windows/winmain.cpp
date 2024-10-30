@@ -5,7 +5,7 @@
  */
 
 #include <framework/broker.h>
-#include <framework/core/i_io.h>
+#include <framework/core/io.h>
 #include <framework/core/logger.h>
 #include <framework/core/i_timestamp.h>
 
@@ -17,6 +17,7 @@
 #include <service/web/web_service.h>
 
 #include <platform/windows/router.h>
+
 
 #include <MQTTClient.h>
 #include <stdlib.h>
@@ -36,9 +37,9 @@ class LoggerSystem : public core::logger::ILoggerSystem, public core::ITimestamp
 {
 public:
   virtual size_t get() const override { return 0; };
-  virtual void output(const core::logger::Verbosity &verbosity, const char *tag, const char *data, size_t size) const override
+  virtual void output(const core::logger::Verbosity &verbosity, size_t tsms, const char *tag, const char *data, size_t size) const override
   {
-    printf("%d %s\n", verbosity.id(), data);
+    printf("%s (%zu) <%s> %s\n", verbosity.name(), tsms, tag, data);
   };
 };
 
@@ -54,7 +55,7 @@ public:
 #define BROKER_SUBSCRIBERS 1
 class Paho
     : public broker::Broker<BROKER_SUBSCRIBERS>,
-      public service::mode::IPortAdapterBroker,
+      // public service::mode::IPortAdapterBroker,
       public service::coin::IPortAdapterBroker
 {
 public:
@@ -67,7 +68,7 @@ public:
   {
     int32_t rc = 0;
     if ((rc = MQTTClient_create(
-             &_client, config.broker_url(), config.broker_client_id(), MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS)
+             &_client, config.broker_url()->data(), config.broker_client_id(), MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS)
     {
       _logger.err().log(TAG,
                         "Fail to create the client to address:%s, clentid:%s, return code: %d",
@@ -91,7 +92,10 @@ public:
     }
     MQTTClient_destroy(&_client);
   }
-
+  virtual bool is_ready() const override
+  {
+    return true;
+  }
   // ----- IBrokerClient
   bool connect() override
   {
@@ -112,9 +116,9 @@ public:
     }
     connected();
 
-    for (size_t i = 0; i < _index; i++)
+    for (size_t i = 0; i < _index_sub; i++)
     {
-      if ((rc = MQTTClient_subscribe(_client, _subs[i].topic, _subs[i].qos)) != MQTTCLIENT_SUCCESS)
+      if ((rc = MQTTClient_subscribe(_client, _subs[i].topic.get(), _subs[i].qos)) != MQTTCLIENT_SUCCESS)
       {
         _logger.err().log(TAG, "Failed to subscribe, return code %d", rc);
       }
@@ -129,9 +133,9 @@ public:
     disconnected("By call of disconnect() function");
 
     int32_t rc;
-    for (size_t i = 0; i < _index; i++)
+    for (size_t i = 0; i < _index_sub; i++)
     {
-      if ((rc = MQTTClient_unsubscribe(_client, _subs[i].topic)) != MQTTCLIENT_SUCCESS)
+      if ((rc = MQTTClient_unsubscribe(_client, _subs[i].topic.get())) != MQTTCLIENT_SUCCESS)
       {
         _logger.err().log(TAG, "Failed to unsubscribe, return code %d", rc);
       }
@@ -150,7 +154,7 @@ public:
     return MQTTClient_isConnected(_client);
   }
 
-  virtual bool publish(const char *topic, const broker::Message &msg, const uint32_t qos = 0) override
+  virtual broker::Token publish(const broker::ITopic &topic, const broker::Message &msg, const uint32_t qos = 0) override
   {
     MQTTClient_message pubmsg = MQTTClient_message_initializer;
     pubmsg.payload = (void *)msg.data;
@@ -158,17 +162,16 @@ public:
     pubmsg.qos = qos;
     pubmsg.retained = 0;
     int32_t rc;
-    broker::Token token = 0;
-    if ((rc = MQTTClient_publishMessage(_client, topic, &pubmsg, &token)) != MQTTCLIENT_SUCCESS)
+    broker::Token token;
+    if ((rc = MQTTClient_publishMessage(_client, topic.get(), &pubmsg, token.id_ptr())) != MQTTCLIENT_SUCCESS)
     {
       _logger.err().log(TAG, "Failed to publish message, return code %d", rc);
-      return false;
+      return token.set_result(false);
     }
 
-    rc = MQTTClient_waitForCompletion(_client, token, _timeout);
-    _logger.inf().log(TAG, "Message to topic %s with delivery token %d delivered", topic, token);
-    // delivered(token);
-    return true;
+    rc = MQTTClient_waitForCompletion(_client, token.id(), _timeout);
+    _logger.inf().log(TAG, "Message to topic %s with delivery token %d delivered", topic.get(), token);
+    return token.set_result(true);
   }
 
   // virtual bool subscribe(broker::IBrokerListener *listener, const char *topic, uint32_t qos = 0)
@@ -190,7 +193,7 @@ private:
     {
       broker::IBrokerConnectionListener *listener =
           static_cast<broker::IBrokerConnectionListener *>(context);
-      listener->delivered(static_cast<broker::Token>(dt));
+      listener->delivered(broker::Token(true, dt));
     }
   }
 
@@ -200,7 +203,7 @@ private:
     {
       broker::IBrokerConnectionListener *listener =
           static_cast<broker::IBrokerConnectionListener *>(context);
-      listener->arrived(topicName, broker::Message(message->payload, message->payloadlen));
+      listener->arrived(broker::TopicRef(topicName), broker::Message(message->payload, message->payloadlen));
     }
     MQTTClient_freeMessage(&message);
     MQTTClient_free(topicName);
@@ -222,6 +225,7 @@ private:
   MQTTClient _client;
   MQTTClient_connectOptions _conn_opts;
   static constexpr const uint32_t _timeout = 10000;
+  static constexpr const char *TAG = "broker.paho";
 };
 
 // class BrokerSubscriber : public broker::IBrokerListener
@@ -262,16 +266,16 @@ public:
     _logger.inf().log(TAG, "Mode has been switched to Station Mode");
     return true;
   }
-  virtual bool is_softap() override
+  virtual bool is_softap() const override
   {
 
     return _softap;
   }
-  virtual bool is_station() override
+  virtual bool is_station() const override
   {
     return _station;
   }
-  virtual bool is_station_connected() override
+  virtual bool is_station_connected() const override
   {
     return _station;
   }
@@ -284,26 +288,11 @@ private:
   static constexpr const char *TAG = "wifi";
 };
 
-class Button : public core::io::IButton, public core::IRunnable
+class Button : public core::IRunnable
 {
 public:
   Button(service::mode::IPortButtonController &bc) : _bc(bc)
   {
-  }
-
-  virtual uint32_t id() const override
-  {
-    return 0;
-  }
-
-  virtual bool clicked() const override
-  {
-    return _clicked;
-  }
-
-  virtual size_t pressed() const override
-  {
-    return _pressed;
   }
 
   virtual void run() override
@@ -414,6 +403,41 @@ void _run(service::mode::ModeService *modsvc, infra::Status *status, service::co
 #include <service/coin/messages/command.h>
 int main()
 {
+  service::coin::msg::ResponseConfig rc("321", "123", "", service::coin::msg::Config(1, 100), 1);
+  
+  char buf[256];
+  rc.dump(buf, sizeof(buf));
+  printf("json:%s\n", buf);
+  printf("-----------------------------\n");
+  
+  auto cmd_read = R"({"Type":"MessageCommand","CarouselId":"550e8400-e29b-41d4-a716-446655440000","SequenceNum":39,"EventId":"b2ea6e51-6ffa-444f-b0e7-f3103bf5a244","Command":"ConfigRead"})";
+  // auto cmd_write = R"({"Type":"MessageCommand","CarouselId":"650e8400-e29b-41d4-a716-446655440000","SequenceNum":40,"EventId":"b2ea6e51-6ffa-444f-b0e7-f3103bf5a244","Command":"ConfigWrite","Config":{"CoinPulseCnt":3,"CoinPulseDur":300}})";
+  auto cmd_write = R"({"Type":"MessageCommand","CarouselId":"550e8400-e29b-41d4-a716-446655440000","SequenceNum":1,"EventId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29","Command":"ConfigWrite", "Config":{"BrokerUrl":"fff"}})";
+  service::coin::msg::CommandComposite cc;
+  bool pr = cc.parse(cmd_read, strlen(cmd_read));
+
+  printf("pr:%d, %s\n", pr, cc.general.type.value.data());
+
+  cc.general.dump(buf, sizeof(buf));
+  printf("general:%s\n", buf);
+  cc.config.value.dump(buf, sizeof(buf));
+  printf("config:%s\n", buf);
+  printf("-----------------------------\n");
+  
+  cc.clear();
+  pr = cc.parse(cmd_write, strlen(cmd_write));
+  printf("pr:%d\n", pr);
+  cc.general.dump(buf, sizeof(buf));
+  printf("general:%s\n", buf);
+  cc.config.value.dump(buf, sizeof(buf));
+  printf("config:%s\n", buf);
+  printf("-----------------------------\n");
+  
+  return 0;
+
+}
+int mai1n()
+{
   using namespace core::logger;
 
   Timestamp ts;
@@ -424,6 +448,7 @@ int main()
       Printable(Configuration(buff, sizeof(buff), Verbosity("W")), ls, ts, true),
       Printable(Configuration(buff, sizeof(buff), Verbosity("I")), ls, ts, true),
       Printable(Configuration(buff, sizeof(buff), Verbosity("D")), ls, ts, true),
+      Printable(Configuration(buff, sizeof(buff), Verbosity("V")), ls, ts, true),
       Dumpable(Configuration(buff, sizeof(buff), Verbosity("D")), ls, ts, true));
 
   // const char* json_str =
@@ -473,8 +498,8 @@ int main()
   MyGpio led_wifi_station_connected("wifi-softap-connected-led", 5, logger);
 
   Wifi wifi(logger);
-  // wifi.swith_to_softap();
-  wifi.swith_to_station();
+  wifi.swith_to_softap();
+  // wifi.swith_to_station();
 
   infra::Status status(logger, ts,
                        led_coin,
@@ -482,7 +507,7 @@ int main()
                        led_wifi_station,
                        led_wifi_station_connected);
   Paho broker(config, logger);
-  service::mode::ModeService modsvc(logger, wifi, status, broker);
+  service::mode::ModeService modsvc(logger, wifi, status);
 
   Button btn(modsvc);
   strategy::StepWait sw100(500, ts);
@@ -495,13 +520,14 @@ int main()
   };
   strategy::StepRunner step_runner(st, sizeof(st) / sizeof(st[0]));
   service::coin::CoinService<COIN_SCV_CAP> coinsvc(broker, status, step_runner, logger, ts, config);
-  broker.add_subscriber(&coinsvc, coinsvc.sub_topic().get());
+  broker.add_subscriber(&coinsvc, coinsvc.sub_topic());
   // broker.add_subscriber(&coinsvc, config.root_sub_topic());
 
   service::web::WebService ws(logger, config);
 
   ws.add_subscriber(&modsvc, service::web::event::EventWifiCredSaved::event_name());
   modsvc.add_subscriber(&ws, service::mode::event::EventWifiModeChanged::event_name());
+  modsvc.add_subscriber(&coinsvc, service::mode::event::EventWifiModeChanged::event_name());
 
   platform::router::Server server;
   platform::router::Router r(server, ws, logger);
@@ -516,4 +542,5 @@ int main()
   //   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   //   // logger.dbg().log("main", "Clicked: %d, Pressed: %d", btn.clicked(), btn.pressed());
   // }
+  return 0;
 }

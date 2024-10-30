@@ -29,31 +29,42 @@ namespace service
     {
       struct ResponseAck : public infra::IJsonDumper
       {
-        ResponseAck(const char *carousel_id, const char *correlation_id, const char* error = nullptr, uint32_t sequence_num = 0)
-            : type(TypeContainer(BMT_ACK), "Type"),
+        ResponseAck(const char *carousel_id, const char *correlation_id, const char *error, uint32_t sequence_num = 0)
+            : type(TypeContainer(BMTR_ACK), "Type"),
               carousel_id(CarouselIdContainer(carousel_id), "CarouselId"),
               correlation_id(EventIdContainer(correlation_id), "CorrelationId"),
               sequence_num(sequence_num, "SequenceNum"),
-              error_str(error, "Error") { }
-        virtual bool dump(char *json_str, size_t cap) const override
+              error_str(error, "Error") {}
+        virtual size_t dump(char *json_str, size_t cap) const override
         {
+          int shift = 0;
           if (json_str)
           {
-            snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":"%s","%s":%d})",
-                     type.name, type.value.data(),
-                     carousel_id.name, carousel_id.value.data(),
-                     correlation_id.name, correlation_id.value.data(),
-                     sequence_num.name, sequence_num.value);
-            return true;
+            if (error_str.value.empty())
+            {
+              shift = snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":"%s","%s":%d})",
+                       type.name, type.value.data(),
+                       carousel_id.name, carousel_id.value.data(),
+                       correlation_id.name, correlation_id.value.data(),
+                       sequence_num.name, (int)sequence_num.value);
+            }
+            else
+            {
+              shift = snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":"%s","%s":%d,"%s":"%s"})",
+                       type.name, type.value.data(),
+                       carousel_id.name, carousel_id.value.data(),
+                       correlation_id.name, correlation_id.value.data(),
+                       sequence_num.name, (int)sequence_num.value,
+                       error_str.name, error_str.value.data());
+            }
           }
-          return false;
+          return shift;
         }
         infra::Named<TypeContainer> type;
         infra::Named<CarouselIdContainer> carousel_id;
         infra::Named<EventIdContainer> correlation_id;
         infra::Named<uint32_t> sequence_num;
         infra::Named<ErrorContainer> error_str;
-        
       };
     }
   }

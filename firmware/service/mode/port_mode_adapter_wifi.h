@@ -8,9 +8,9 @@ namespace service
     {
       virtual bool swith_to_softap() = 0;
       virtual bool swith_to_station() = 0;
-      virtual bool is_softap() = 0;
-      virtual bool is_station() = 0;
-      virtual bool is_station_connected() = 0;
+      virtual bool is_softap() const = 0;
+      virtual bool is_station() const = 0;
+      virtual bool is_station_connected() const = 0;
     };
 
   }

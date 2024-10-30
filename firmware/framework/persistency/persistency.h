@@ -8,7 +8,7 @@ namespace persistency
 {
 
   
-  constexpr const size_t max(size_t a, size_t b)
+  constexpr size_t max(size_t a, size_t b)
   {
     return a > b ? a : b;
   }
@@ -27,9 +27,9 @@ namespace persistency
     constexpr Persistency(
         const Row *const table,
         uint8_t *memory,
-        const size_t size,
+        const size_t cap,
         const IPersistencyFlash &flash)
-        : _table(table), _memory(memory), _size(size), _flash(flash)
+        : _table(table), _memory(memory), _cap(cap), _flash(flash)
     {
     }
 
@@ -39,8 +39,7 @@ namespace persistency
       Row row{id, sizeof(T), apply_default<T>};
       return row;
     }
-
-    static constexpr bool check_persistency_table_size(
+    static constexpr size_t calc_persistency_table_size(
         const Persistency::Row *table_data,
         const size_t table_size_bytes)
     {
@@ -51,17 +50,24 @@ namespace persistency
       {
         size += row_ptr->size;
       }
-      return size < table_size_bytes;
+      return size;
+    }
+
+    static constexpr bool check_persistency_table_size(
+        const Persistency::Row *table_data,
+        const size_t table_size_bytes)
+    {
+      return calc_persistency_table_size(table_data, table_size_bytes) < table_size_bytes;
     }
 
     bool load() const
     {
-      return _flash.load(_memory, _size);
+      return _flash.load(_memory, _cap);
     }
 
     bool save() const
     {
-      return _flash.save(_memory, _size);
+      return _flash.save(_memory, _cap);
     }
 
     template <typename T>
@@ -71,7 +77,7 @@ namespace persistency
       if (value &&
           row_entry.row &&
           row_entry.row->size == sizeof(T) &&
-          ((row_entry.index + sizeof(T)) < _size))
+          ((row_entry.index + sizeof(T)) < _cap))
       {
         memcpy(
             reinterpret_cast<T *>(value),
@@ -89,7 +95,7 @@ namespace persistency
       if (value &&
           row_entry.row &&
           row_entry.row->size == sizeof(T) &&
-          ((row_entry.index + sizeof(T)) < _size))
+          ((row_entry.index + sizeof(T)) < _cap))
       {
         memcpy(
             &_memory[row_entry.index],
@@ -101,14 +107,14 @@ namespace persistency
     }
 
     template <typename T>
-    const T *const get(Id id) const
+    const T * get(Id id) const
     {
       auto row_entry = find_row(id);
       if (row_entry.row &&
           row_entry.row->size == sizeof(T) &&
-          ((row_entry.index + sizeof(T)) < _size))
+          ((row_entry.index + sizeof(T)) < _cap))
       {
-        return reinterpret_cast<T *>(&_memory[row_entry.index]);
+        return reinterpret_cast<const T *>(&_memory[row_entry.index]);
       }
       else
       {
@@ -175,9 +181,9 @@ namespace persistency
       return entry;
     }
 
-    uint8_t *_memory;
-    const size_t _size;
     const Row *const _table;
+    uint8_t *_memory;
+    const size_t _cap;
     const IPersistencyFlash &_flash;
   };
 }

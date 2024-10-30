@@ -8,9 +8,9 @@ class LoggerSystem : public core::logger::ILoggerSystem, public core::ITimestamp
 {
 public:
   virtual size_t get() const override { return 0; };
-  virtual void output(const core::logger::Verbosity &verbosity, const char *tag, const char *data, size_t size) const override
+  virtual void output(const core::logger::Verbosity &verbosity, size_t tsms, const char *tag, const char *data, size_t size) const override
   {
-    printf("%d %s\n", verbosity.id(), data);
+    printf("%s (%zu) <%s> %s\n", verbosity.name(), tsms, tag, data);
   };
 };
 
@@ -87,6 +87,7 @@ int main()
       none,
       none,
       Printable(Configuration(buff, sizeof(buff), Verbosity("D")), LoggerSystem(), Timestamp(), true),
+      none,
       DumpableNone());
   TestListenerOne tl1(logger);
   TestListenerTwo tl2(logger);

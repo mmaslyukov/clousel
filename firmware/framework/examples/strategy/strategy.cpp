@@ -3,14 +3,15 @@
 #include "framework/core/i_timestamp.h"
 #include <stdint.h>
 #include <chrono>
+#include <thread>
 
 class LoggerSystem : public core::logger::ILoggerSystem, public core::ITimestamp
 {
 public:
   virtual size_t get() const override { return 0; };
-  virtual void output(const core::logger::Verbosity &verbosity, const char *tag, const char *data, size_t size) const override
+  virtual void output(const core::logger::Verbosity &verbosity, size_t tsms, const char *tag, const char *data, size_t size) const override
   {
-    printf("%d %s\n", verbosity.id(), data);
+    printf("%s (%zu) <%s> %s\n", verbosity.name(), tsms, tag, data);
   };
 };
 
@@ -57,6 +58,7 @@ int main()
       none,
       none,
       Printable(Configuration(buff, sizeof(buff), Verbosity("D")), LoggerSystem(), ts, true),
+      none,
       DumpableNone());
   MyGpio gpio(1, logger);
   StepWait sw100(500, ts);
@@ -66,12 +68,19 @@ int main()
       &saon,
       &sw100,
       &saof,
+      &sw100,
+      &saon,
+      &sw100,
+      &saof,
+      nullptr,
   };
   StepRunner sr(st, sizeof(st) / sizeof(st[0]));
-
+  sr.reset();
   while (!sr.finished())
   {
     sr.run();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    // std::this_thread::sleep_for(std::chrono::duration)
   }
   logger.dbg().log("main", "Done");
   return 0;

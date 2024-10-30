@@ -7,14 +7,22 @@ namespace strategy
   class StepActuatorOff : public IStep
   {
   public:
-    StepActuatorOff(core::io::IActuator<bool>& out) : _out(out) {}
+    StepActuatorOff(core::io::IActuator<bool> &out) : _out(out) {}
     virtual bool execute() override
     {
       _out.set(false);
       return true;
     }
+    
+    virtual void prepare() override
+    {
+    }
+
+    virtual void complete() override
+    {
+    }
 
   private:
-    core::io::IActuator<bool>& _out;
+    core::io::IActuator<bool> &_out;
   };
 }

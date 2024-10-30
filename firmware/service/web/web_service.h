@@ -27,7 +27,8 @@ namespace service
           const core::logger::ILogger &logger,
           IPortAdapterConfig &config)
           : _logger(logger),
-            _config(config) {}
+            _config(config),
+            _wifi_mode_changed(mode::event::EventWifiModeChanged::to_none()) {}
       // virtual void run() override
       // {
       // }
@@ -36,8 +37,9 @@ namespace service
       {
         if (event.name() == mode::event::EventWifiModeChanged::event_name())
         {
-          const auto *mode_changed = reinterpret_cast<const mode::event::EventWifiModeChanged *>(&event);
-          _enabled = mode_changed->sofap();
+          _wifi_mode_changed = reinterpret_cast<const mode::event::EventWifiModeChanged&>(event);
+          // const auto &mode_changed = reinterpret_cast<const mode::event::EventWifiModeChanged&>(&event);
+          // _enabled = mode_changed->is_sofap();
         }
       }
 
@@ -46,15 +48,19 @@ namespace service
         bool result = false;
         do
         {
-          if (!_enabled)
+          // if (!_enabled)
+          if (!_wifi_mode_changed.is_sofap())
           {
+            _logger.wrn().log(TAG, "Can be handled only in SoftAp mode");
             break;
           }
-          if (!strlen(settings.pswd()) || !strlen(settings.ssid()))
+          // if (!strlen(settings.pswd()) || !strlen(settings.ssid()))
+          if (settings.ssid().empty())
           {
+            _logger.err().log(TAG, "ssid is empty");
             break;
           }
-          _logger.inf().log(TAG, "ssid:%s, pswd:%s", settings.ssid(), settings.pswd());
+          _logger.inf().log(TAG, "ssid:%s, pswd:%s", settings.ssid().data(), settings.pswd().data());
           bool saved = _config.set_wifi_config_station(settings);
           if (!saved)
           {
@@ -77,7 +83,8 @@ namespace service
     private:
       const core::logger::ILogger &_logger;
       IPortAdapterConfig &_config;
-      bool _enabled;
+      mode::event::EventWifiModeChanged _wifi_mode_changed;
+      // bool _enabled;
       static constexpr const char *TAG = "web";
     };
   }

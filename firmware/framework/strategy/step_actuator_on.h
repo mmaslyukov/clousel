@@ -13,7 +13,13 @@ namespace strategy
       _out.set(true);
       return true;
     }
+    virtual void prepare() override
+    {
+    }
 
+    virtual void complete() override
+    {
+    }
   private:
     core::io::IActuator<bool>& _out;
   };

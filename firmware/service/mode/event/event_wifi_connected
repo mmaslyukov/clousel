@@ -1,0 +1,23 @@
+#pragma once
+#include <framework/core/observer.h>
+namespace service
+{
+  namespace mode
+  {
+    namespace event
+    {
+      struct EventWifiConnected : public core::observer::Event
+      {
+        EventWifiConnected()
+            : core::observer::Event(event_name()) {}
+        static const char *event_name()
+        {
+          return "wifi.connected";
+        }
+      };
+
+    } // namespace event
+
+  } // namespace mode
+
+} // namespace service

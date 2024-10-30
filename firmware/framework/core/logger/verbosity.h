@@ -10,7 +10,7 @@ namespace core
       constexpr Verbosity(const char *verbosty_name)
           : _id(0), _name(verbosty_name) {}
       constexpr Verbosity(const uint32_t verbosity_id)
-          : _id(verbosity_id), _name(nullptr) {}
+          : _id(verbosity_id), _name("") {}
       virtual uint32_t id() const { return _id; }
       virtual const char *name() const { return _name; }
 

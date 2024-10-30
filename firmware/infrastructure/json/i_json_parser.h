@@ -3,6 +3,6 @@ namespace infra
 {
   struct IJsonParser
   {
-    virtual bool parse(const char *json_str) = 0;
+    virtual bool parse(const char *json_str, size_t len) = 0;
   };
 }

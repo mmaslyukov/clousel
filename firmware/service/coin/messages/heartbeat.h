@@ -19,24 +19,20 @@ namespace service
       struct Heartbeat : public infra::IJsonDumper
       {
         Heartbeat(const char *carousel_id, uint32_t sequence_num = 0)
-            : type(TypeContainer(BMT_HEARTBEAT), "Type"),
+            : type(TypeContainer(BMTE_HEARTBEAT), "Type"),
               carousel_id(CarouselIdContainer(carousel_id), "CarouselId"),
               sequence_num(sequence_num, "SequenceNum") {}
-              // virtual const core::error::IError& dump(char *json_str, size_t cap) {
-              //   static core::error::ErrorConst ec;
-              //   return ec;
-              // };
-        virtual bool dump(char *json_str, size_t cap) const override 
+        virtual size_t dump(char *json_str, size_t cap) const override 
         {
+          int shift = 0;
           if (json_str)
           {
-            snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":%d})",
+            shift = snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":%d})",
                      type.name, type.value.data(),
                      carousel_id.name, carousel_id.value.data(),
-                     sequence_num.name, sequence_num.value);
-            return true;
+                     sequence_num.name, (int)sequence_num.value);
           }
-          return false;
+          return shift;
         }
         infra::Named<TypeContainer> type;
         infra::Named<CarouselIdContainer> carousel_id;

@@ -9,17 +9,25 @@ namespace strategy
   {
   public:
     StepWait(uint32_t timeout_ms, const core::ITimestamp &timeapi)
-        : _target_timestamp(timeapi.get() + timeout_ms), _timeapi(timeapi)
+        : _ts(timeapi), _tm(timeout_ms)
+    {
+    }
+    virtual void prepare() override
+    {
+      _target_timestamp = _ts.get() + _tm;
+    }
+    virtual void complete() override
     {
     }
     virtual bool execute() override
     {
-      return _target_timestamp <= _timeapi.get();
+      return _target_timestamp <= _ts.get();
     }
 
   private:
     // const uint32_t _tm;
-    const size_t _target_timestamp;
-    const core::ITimestamp &_timeapi;
+    const core::ITimestamp &_ts;
+    size_t _tm;
+    size_t _target_timestamp;
   };
 }

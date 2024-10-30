@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <framework/util/util.h>
 
 namespace infra
 {
@@ -8,44 +9,46 @@ namespace infra
   {
     WifiSettings()
     {
-      memset(_ssid, 0, sizeof(_ssid));
-      memset(_pswd, 0, sizeof(_pswd));
+      _ssid.clear();
+      _pswd.clear();
     }
+
+    WifiSettings(const char *ssid)
+    {
+      _ssid.replace(ssid);
+      _pswd.clear();
+    }
+
     WifiSettings(const char *ssid, const char *pswd)
     {
-      if (strlen(ssid) < N)
-      {
-        strcpy_s(_ssid, N, ssid);
-      }
-      else
-      {
-        memset(_ssid, 0, sizeof(_ssid));
-      }
-
-      if (strlen(pswd) < N)
-      {
-        strcpy_s(_pswd, N, pswd);
-      }
-      else
-      {
-        memset(_pswd, 0, sizeof(_pswd));
-      }
+      _ssid.replace(ssid);
+      _pswd.replace(pswd);
     }
-    const char *ssid() const
+
+    bool is_ssid_vaid() const
+    {
+      return !_ssid.empty();
+      // return strlen(_ssid) > 0;
+    }
+
+    const CharContainer<N> &ssid() const
     {
       return _ssid;
     }
-    const char *pswd() const
+
+    const CharContainer<N> &pswd() const
     {
       return _pswd;
     }
 
   private:
-    char _ssid[N];
-    char _pswd[N];
+    CharContainer<N> _ssid;
+    CharContainer<N> _pswd;
+    // char _ssid[N];
+    // char _pswd[N];
 
     /* data */
   };
-  using WifiSettingsN = WifiSettings<16>;
+  using WifiSettingsN = WifiSettings<32>;
 
 } // namespace infra

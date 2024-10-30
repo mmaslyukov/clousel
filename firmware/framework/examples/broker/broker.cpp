@@ -15,9 +15,9 @@ class LoggerSystem : public core::logger::ILoggerSystem, public core::ITimestamp
 {
 public:
   virtual size_t get() const override { return 0; };
-  virtual void output(const core::logger::Verbosity &verbosity, const char *tag, const char *data, size_t size) const override
+  virtual void output(const core::logger::Verbosity &verbosity, size_t tsms, const char *tag, const char *data, size_t size) const override
   {
-    printf("%d %s\n", verbosity.id(), data);
+    printf("%s (%zu) <%s> %s\n", verbosity.name(), tsms, tag, data);
   };
 };
 
@@ -120,7 +120,7 @@ public:
     return MQTTClient_isConnected(_client);
   }
 
-  virtual bool publish(const char *topic, const broker::Message &msg, const uint32_t qos = 0)
+  virtual broker::Token publish(const broker::ITopic &topic, const broker::Message &msg, const uint32_t qos = 0)
   {
     MQTTClient_message pubmsg = MQTTClient_message_initializer;
     pubmsg.payload = (void *)msg.data;
@@ -129,21 +129,21 @@ public:
     pubmsg.retained = 0;
     int32_t rc;
     broker::Token token;
-    if ((rc = MQTTClient_publishMessage(_client, topic, &pubmsg, &token)) != MQTTCLIENT_SUCCESS)
+    if ((rc = MQTTClient_publishMessage(_client, topic.get(), &pubmsg, token.id_ptr())) != MQTTCLIENT_SUCCESS)
     {
       _logger.err().log(TAG, "Failed to publish message, return code %d", rc);
-      return false;
+      return token.set_result(false);
     }
 
-    rc = MQTTClient_waitForCompletion(_client, token, _timeout);
-    _logger.dbg().log(TAG, "Message to topic %s with delivery token %d delivered", topic, token);
-    return false;
+    rc = MQTTClient_waitForCompletion(_client, token.id(), _timeout);
+    _logger.dbg().log(TAG, "Message to topic %s with delivery token %d delivered", topic.get(), token);
+    return token.set_result(false);
   }
 
-  virtual bool subscribe(broker::IBrokerListener *listener, const char *topic, uint32_t qos = 0)
+  virtual bool subscribe(broker::IBrokerMessageListener *listener, const broker::ITopic &topic, uint32_t qos = 0)
   {
     int32_t rc;
-    if ((rc = MQTTClient_subscribe(_client, topic, qos)) != MQTTCLIENT_SUCCESS)
+    if ((rc = MQTTClient_subscribe(_client, topic.get(), qos)) != MQTTCLIENT_SUCCESS)
     {
       _logger.err().log(TAG, "Failed to subscribe, return code %d", rc);
       return false;
@@ -159,7 +159,8 @@ private:
     {
       broker::IBrokerConnectionListener *listener =
           static_cast<broker::IBrokerConnectionListener *>(context);
-      listener->delivered(static_cast<broker::Token>(dt));
+      broker::Token token(true, dt);
+      listener->delivered(token);
     }
   }
 
@@ -169,7 +170,7 @@ private:
     {
       broker::IBrokerConnectionListener *listener =
           static_cast<broker::IBrokerConnectionListener *>(context);
-      listener->arrived(topicName, broker::Message(message->payload, message->payloadlen));
+      listener->arrived(broker::TopicRef(topicName), broker::Message(message->payload, message->payloadlen));
     }
     MQTTClient_freeMessage(&message);
     MQTTClient_free(topicName);
@@ -190,18 +191,19 @@ private:
   MQTTClient_connectOptions _conn_opts;
   MQTTClient _client;
   static constexpr const uint32_t _timeout = 10000;
+  static constexpr const char *TAG = "broker.exmaple";
 };
 
-class BrokerSubscriber : public broker::IBrokerListener
+class BrokerSubscriber : public broker::IBrokerMessageListener
 {
 public:
   BrokerSubscriber(const core::logger::ILogger &logger)
       : _logger(logger) {}
 
 private:
-  virtual void notify(const char *topic, const broker::Message &msg)
+  virtual void notify(const broker::ITopic &topic, const broker::Message &msg)
   {
-    _logger.inf().log("subscriber", "Received from topic: %s, message:", topic);
+    _logger.inf().log("subscriber", "Received from topic: %s, message:", topic.get());
     _logger.raw().dump("subscriber", (const uint8_t *)msg.data, msg.size);
     _logger.raw().dump_ascii("subscriber", (const uint8_t *)msg.data, msg.size);
   }
@@ -213,16 +215,16 @@ private:
 void topic(const core::logger::ILogger &logger)
 {
   const int cap = 20;
-  broker::Topic<cap> t("/root/leaf");
+  broker::TopicRef t("/root/leaf");
   logger.raw().dump("topic", (const uint8_t *)t.get(), cap);
   logger.dbg().log("topic", "%d/%d|%s", t.len(), cap, t.get());
   t.append("flower");
   logger.raw().dump("topic", (const uint8_t *)t.get(), cap);
   logger.dbg().log("topic", "%d/%d|%s", t.len(), cap, t.get());
-  logger.dbg().log("topic", "contain %d", t.contain("/root"));
-  logger.dbg().log("topic", "contain %d", t.contain("/root/leaf"));
-  logger.dbg().log("topic", "contain %d", t.contain("/root/leaf/flower"));
-  logger.dbg().log("topic", "contain %d", t.contain("root/leaf/flower"));
+  logger.dbg().log("topic", "contain %d", t.contains("/root"));
+  logger.dbg().log("topic", "contain %d", t.contains("/root/leaf"));
+  logger.dbg().log("topic", "contain %d", t.contains("/root/leaf/flower"));
+  logger.dbg().log("topic", "contain %d", t.contains("root/leaf/flower"));
   logger.dbg().log("topic", "contain %d", t.part_of("/root/leaf/flower/bee"));
 }
 
@@ -238,6 +240,7 @@ int main()
       Printable(Configuration(buff, sizeof(buff), Verbosity("W")), ls, ts, true),
       Printable(Configuration(buff, sizeof(buff), Verbosity("I")), ls, ts, true),
       Printable(Configuration(buff, sizeof(buff), Verbosity("D")), ls, ts, true),
+      Printable(Configuration(buff, sizeof(buff), Verbosity("V")), ls, ts, true),
       Dumpable(Configuration(buff, sizeof(buff), Verbosity("D")), ls, ts, true));
 
   topic(logger);
@@ -250,14 +253,14 @@ int main()
     // broker::IBrokerConnectionListener *pb = &broker;
     // pb->arrived("ssss", broker::Message());
     BrokerSubscriber bs(logger);
-    broker.subscribe(&bs, "/test/one");
+    broker.subscribe(&bs, broker::TopicRef("/test/one"));
 
     int ch;
     do
     {
       ch = getchar();
     } while (ch != 'Q' && ch != 'q');
-    broker.publish("/test/one", broker::Message("Hello1"));
-    broker.publish("/test/one", broker::Message("Hello2"));
+    broker.publish(broker::TopicRef("/test/one"), broker::Message("Hello1"));
+    broker.publish(broker::TopicRef("/test/one"), broker::Message("Hello2"));
   }
 }
