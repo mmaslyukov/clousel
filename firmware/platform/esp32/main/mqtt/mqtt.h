@@ -221,10 +221,15 @@ private:
     memset(&mqtt_cfg, 0, sizeof(mqtt_cfg));
     mqtt_cfg.broker.address.uri = _config.broker_url()->data();
     mqtt_cfg.credentials.client_id = _config.broker_client_id();
+    mqtt_cfg.credentials.username = _config.broker_username()->data();
+    mqtt_cfg.credentials.authentication.password = _config.broker_password()->data();
     _client = esp_mqtt_client_init(&mqtt_cfg);
     if (_client)
     {
-      _logger.inf().log(TAG, "Cliet has been created");
+      _logger.inf().log(TAG, "Cliet has been created, url:%s, username:%s, password:%s", 
+      _config.broker_url()->data(),
+      _config.broker_username()->data(),
+      _config.broker_password()->data());
     }
     res = res && esp_mqtt_client_register_event(_client, MQTT_EVENT_ANY, &mqtt_event_handler, this) == ESP_OK;
     res = res && esp_mqtt_client_start(_client) == ESP_OK;

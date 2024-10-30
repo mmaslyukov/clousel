@@ -43,21 +43,93 @@ public:
 struct Flash : public persistency::IPersistencyFlash
 {
   Flash(const core::logger::ILogger &logger)
-      : _logger(logger) {}
+      : _logger(logger)
+  {
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+  }
   virtual bool load(uint8_t *memory, size_t size) const
   {
-    _logger.dbg().log(TAG, "Loaded");
-    return true;
+    bool res = true;
+    bool to_close = false;
+    nvs_handle_t my_handle;
+    do
+    {
+      res = res && nvs_open(NAMESPACE, NVS_READWRITE, &my_handle) == ESP_OK;
+      if (!res)
+      {
+        _logger.err().log(TAG, "Fail to open nvs");
+        break;
+      }
+      to_close = true;
+      size_t actual_size = size;
+      res = res && nvs_get_blob(my_handle, NAMESPACE, memory, &actual_size) == ESP_OK;
+      if (!res)
+      {
+        _logger.err().log(TAG, "Fail to get data from nvs");
+        break;
+      }
+      res = res && actual_size == size;
+      if (!res)
+      {
+        res = false;
+        _logger.wrn().log(TAG, "Storage sizes are mismatch, probably fresh nvs");
+        break;
+      }
+      _logger.dbg().log(TAG, "Loaded successfully");
+    } while (false);
+
+    if (to_close)
+    {
+      nvs_close(my_handle);
+    }
+    return res;
   };
   virtual bool save(const uint8_t *memory, size_t size) const
   {
-    _logger.dbg().log(TAG, "Saved");
-    return true;
+    bool res = true;
+    bool to_close = false;
+    nvs_handle_t my_handle;
+    do
+    {
+      res = res && nvs_open(NAMESPACE, NVS_READWRITE, &my_handle) == ESP_OK;
+      if (!res)
+      {
+        _logger.err().log(TAG, "Fail to open nvs");
+        break;
+      }
+      to_close = true;
+      res = res && nvs_set_blob(my_handle, NAMESPACE, memory, size) == ESP_OK;
+      if (!res)
+      {
+        _logger.err().log(TAG, "Fail to set data to nvs");
+        break;
+      }
+      res = res && nvs_commit(my_handle) == ESP_OK;
+      if (!res)
+      {
+        _logger.err().log(TAG, "Fail to commit data to nvs");
+        break;
+      }
+      _logger.dbg().log(TAG, "Saved successfully");
+    } while (false);
+
+    if (to_close)
+    {
+      nvs_close(my_handle);
+    }
+    return res;
   };
 
 private:
   const core::logger::ILogger &_logger;
   static constexpr const char *TAG = "flash";
+  static constexpr const char *NAMESPACE = "persistency";
 };
 
 class Actuator : public core::io::IActuator<bool>
@@ -262,15 +334,61 @@ strategy::StepRunner &init_step_runner(const Timestamp &ts, const core::logger::
   return step_runner;
 }
 
-persistency::Persistency<infra::Config::PersistencyId> &init_persistency(const core::logger::ILogger &logger)
+struct ScenarioMaker : public strategy::IScenarioMaker
 {
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+  ScenarioMaker(const Timestamp &ts, const core::logger::ILogger &logger, infra::Config &config): _ts(ts), _logger(logger), _config(config) {}
+  virtual strategy::StepRunner &make() const override
   {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
+    // static MyGpio coin_pin("coin-ctrl", 1, logger);
+    const infra::CoinPulseProps *props = _config.coin_pulse_props();
+    if (!props->is_valid())
+    {
+      _config.persistency().reset_default(infra::Config::PersistencyId::COIN_PULSE_PROPS);
+    }
+
+    _logger.inf().log(TAG, "count:%d, duration:%d", props->count, props->duration);
+
+    static Actuator coin_pin(CONFIG_COIN_OUT, false);
+
+    static strategy::StepWait swt(props->duration, _ts);
+    static strategy::StepActuatorOff saoff(coin_pin);
+    static strategy::StepActuatorOn saon(coin_pin);
+    static strategy::IStep *st[17];
+    memset(st, 0, sizeof(st));
+
+    for (uint8_t count = 0, index = 0; count < props->count; count++)
+    {
+      if (index < sizeof(st) / sizeof(st[0]))
+      {
+        st[index++] = &saon;
+      }
+      if (index < sizeof(st) / sizeof(st[0]))
+      {
+        st[index++] = &swt;
+      }
+      if (index < sizeof(st) / sizeof(st[0]))
+      {
+        st[index++] = &saoff;
+      }
+      if (index < sizeof(st) / sizeof(st[0]))
+      {
+        st[index++] = &swt;
+      }
+    }
+
+    static strategy::StepRunner step_runner(st, sizeof(st) / sizeof(st[0]));
+    return step_runner;
   }
-  ESP_ERROR_CHECK(ret);
+
+private:
+  const Timestamp &_ts;
+  const core::logger::ILogger &_logger;
+  infra::Config &_config;
+};
+
+persistency::Persistency<infra::Config::PersistencyId> &
+init_persistency(const core::logger::ILogger &logger)
+{
 
   const size_t PERSISTENCE_SIZE = 256;
   static uint8_t memory[PERSISTENCE_SIZE];
@@ -286,21 +404,15 @@ persistency::Persistency<infra::Config::PersistencyId> &init_persistency(const c
   static_assert(
       persistency::Persistency<infra::Config::PersistencyId>::check_persistency_table_size(
           persistency_table,
-          PERSISTENCE_SIZE),
+          sizeof(memory)),
       "Error, insufficient memory for persistency table mapping");
   static Flash flash(logger);
   static persistency::Persistency<infra::Config::PersistencyId> storage(persistency_table, memory, sizeof(memory), flash);
-  storage.load();
-
   return storage;
 }
 
 void set_defaults(infra::Config &config)
 {
-  // char mac[18];
-
-  // config.wifi_config_softap()->ssid()
-
   infra::CharContainer<20> mac;
   if (WifiModeSoftAp::dump_mac(mac.data_mut(), mac.capacity()))
   {
@@ -319,18 +431,22 @@ extern "C"
   void app_main(void)
   {
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_log_level_set(service::coin::CoinService<0>::TAG, ESP_LOG_VERBOSE);        // set all components to ERROR level
+    esp_log_level_set(service::coin::CoinService<0>::TAG, ESP_LOG_VERBOSE); // set all components to ERROR level
     Timestamp ts;
     auto &logger = init_logger(ts);
     auto &status = init_status(ts, logger);
     auto &storage = init_persistency(logger);
     infra::Config config(storage);
-    auto &steps = init_step_runner(ts, logger, config);
+    // auto &steps = init_step_runner(ts, logger, config);
     ButtonInput btn_input(0);
     core::io::Button<2> btn(btn_input, ts);
 
-    set_defaults(config);
-    logger.wrn().log(TAG, "URL: %s", config.broker_url()->data());
+    if (!storage.load())
+    {
+      storage.reset_default_all();
+      set_defaults(config);
+      storage.save();
+    }
 
     const infra::WifiSettingsN *sap_cfg = config.wifi_config_softap();
     const infra::WifiSettingsN *sta_cfg = config.wifi_config_station();
@@ -342,7 +458,7 @@ extern "C"
     service::web::WebService ws(logger, config);
     Router r(logger, ws);
     Mqtt mqtt(sta, config, logger);
-    service::coin::CoinService<384> coinsvc(mqtt, status, steps, logger, ts, config);
+    service::coin::CoinService<384> coinsvc(mqtt, status, ScenarioMaker(ts, logger, config), logger, ts, config);
 
     mqtt.add_subscriber(&coinsvc, coinsvc.sub_topic());
     ws.add_subscriber(&modsvc, service::web::event::EventWifiCredSaved::event_name());
@@ -350,7 +466,6 @@ extern "C"
     modsvc.add_subscriber(&coinsvc, service::mode::event::EventWifiModeChanged::event_name());
     btn.add_subscriber(&modsvc, core::io::event::EventButtonClicked::event_name());
     btn.add_subscriber(&modsvc, core::io::event::EventButtonHeld::event_name());
-    // sta_cfg
     if (sta_cfg->is_ssid_vaid())
     {
       modsvc.switch_to_station();

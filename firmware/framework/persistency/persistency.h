@@ -62,12 +62,12 @@ namespace persistency
 
     bool load() const
     {
-      return _flash.load(_memory, _cap);
+      return _flash.load(_memory, calc_persistency_table_size(_table, _cap));
     }
 
     bool save() const
     {
-      return _flash.save(_memory, _cap);
+      return _flash.save(_memory, calc_persistency_table_size(_table, _cap));
     }
 
     template <typename T>

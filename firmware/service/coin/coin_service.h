@@ -14,6 +14,10 @@
 #include "port_coin_adapter_config.h"
 #include "port_coin_controller_broker.h"
 
+/**
+ * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"MessageCommand","CarouselId":"550e8400-e29b-41d4-a716-446655440000","SequenceNum":1,"EventId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29","Command":"ConfigWrite", "Config":{"BrokerUrl":"mqtt://192.168.0.150:1883","BrokerUsername":"CLOUSEL","BrokerPassword":"123wqeqwsaddsa","CoinPulseCnt":1,"CoinPulseDur":100}}'
+ * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"MessageCommand","CarouselId":"550e8400-e29b-41d4-a716-446655440000","SequenceNum":1,"EventId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29","Command":"ConfigRead"}'
+ */
 namespace service
 {
   namespace coin
@@ -28,13 +32,14 @@ namespace service
     public:
       constexpr CoinService(IPortAdapterBroker &broker,
                             IPortAdapterStatus &status,
-                            strategy::StepRunner &scenario,
+                            const strategy::IScenarioMaker &scenario_maker,
                             const core::logger::ILogger &logger,
                             const core::ITimestamp &ts,
                             IPortAdapterConfig &config)
           : _broker(broker),
             _status(status),
-            _scenario(scenario),
+            _scenario_maker(scenario_maker),
+            _scenario(scenario_maker.make()),
             _logger(logger),
             _config(config),
             _ts(ts),
@@ -168,16 +173,21 @@ namespace service
               if (props.is_valid())
               {
                 _config.set_coin_pulse_props(props);
+                _scenario = _scenario_maker.make();
                 publish(msg::ResponseAck(_last_cmd.general.carousel_id.value.data(), _last_cmd.general.event_id.value.data(), nullptr, sequence_num()));
               }
               else
               {
                 err = "Invalid coin pulse data";
               }
-              // if (reconnect)
-              // {
-              // _broker.disconnect();
-              // }
+              if (reconnect)
+              {
+                _broker.disconnect();
+              }
+              if (!_config.save())
+              {
+                err = "Fail to save new configuration";
+              }
             }
             else if (_last_cmd.general.command.value.eq(BMTC_CONFIG_READ))
             {
@@ -288,6 +298,7 @@ namespace service
     private:
       IPortAdapterBroker &_broker;
       IPortAdapterStatus &_status;
+      const strategy::IScenarioMaker& _scenario_maker;
       strategy::StepRunner &_scenario;
       const core::logger::ILogger &_logger;
       IPortAdapterConfig &_config;

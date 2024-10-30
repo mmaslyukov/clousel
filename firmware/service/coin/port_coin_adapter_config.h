@@ -9,6 +9,7 @@ namespace service
   {
     struct IPortAdapterConfig
     {
+      virtual bool save() const = 0;
       virtual const char *root_sub_topic() const = 0;
       virtual const char *root_pub_topic() const = 0;
       virtual const infra::CarouselId *carousel_id() const = 0;

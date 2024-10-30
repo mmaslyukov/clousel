@@ -112,7 +112,7 @@ namespace infra
 
     virtual bool set_broker_password(const BrokerPassword &password) override
     {
-      return _persistency.write(PersistencyId::MQTT_BROKER_USERNAME, &password);
+      return _persistency.write(PersistencyId::MQTT_BROKER_PASSWORD, &password);
     }
 
     virtual const BrokerUrl *broker_url() const override
