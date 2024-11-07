@@ -33,7 +33,6 @@ namespace infra
       MQTT_BROKER_USERNAME,
       MQTT_BROKER_PASSWORD,
       COIN_PULSE_PROPS,
-      CAROUSEL_ID,
       _LAST
     };
 
@@ -92,7 +91,8 @@ namespace infra
 
     virtual const CarouselId *carousel_id() const override
     {
-      return _persistency.get<CarouselId>(PersistencyId::CAROUSEL_ID);
+      static CarouselId cid;
+      return &cid;
     }
 
     const infra::BrokerUsername *broker_username() const

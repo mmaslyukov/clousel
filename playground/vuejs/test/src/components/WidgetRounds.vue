@@ -12,7 +12,7 @@ import { Widget } from './widget.js'
 // const roundCur = ref(1)
 
 const props = defineProps({
-    rounds: Number, // ref() of Number
+    current: Number, // ref() of Number
     max: Number, // ref() of Number
     status: String,
 })
@@ -34,11 +34,11 @@ onMounted(() => {
 
 
 watch(props, (newProps) => {
-    console.log("Watch widget, rounds: ", props.rounds, " max: ", props.max)
-    // redraw(newProps.rounds, newProps.max);
+    console.log("Watch widget, rounds: ", props.current, " max: ", props.max)
+    // redraw(newProps.current, newProps.max);
     let c = document.getElementById("myCanvas");
     let widget = new Widget(c, c.width / 20, c.width / 3);
-    widget.clear().withStatus(props.status).draw(props.rounds, props.max).lable("Rounds");
+    widget.clear().withStatus(props.status).draw(props.current, props.max).lable("Rounds");
 })
 </script>
 

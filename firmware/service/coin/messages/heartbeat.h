@@ -19,9 +19,9 @@ namespace service
       struct Heartbeat : public infra::IJsonDumper
       {
         Heartbeat(const char *carousel_id, uint32_t sequence_num = 0)
-            : type(TypeContainer(BMTE_HEARTBEAT), "Type"),
-              carousel_id(CarouselIdContainer(carousel_id), "CarouselId"),
-              sequence_num(sequence_num, "SequenceNum") {}
+            : type(TypeContainer(BMTE_HEARTBEAT), BMF_TYPE),
+              carousel_id(CarouselIdContainer(carousel_id), BMF_CAROUSEL_ID),
+              sequence_num(sequence_num, BMF_SEQUENCE_NUM) {}
         virtual size_t dump(char *json_str, size_t cap) const override 
         {
           int shift = 0;

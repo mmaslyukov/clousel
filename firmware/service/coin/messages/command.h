@@ -10,18 +10,6 @@
 #include <cstdlib>
 #include <stdio.h>
 
-// type MessageGeneral struct {
-// 	CarouselId  string `json:CarouselId`
-// 	SequenceNum int    `json:SequenceNum`
-// 	EventId     string `json:EventId`
-// 	Type        string `json:Type`
-// }
-
-// type MessageCommand struct {
-// 	MessageGeneral
-// 	Command string `json:Command`
-// }
-
 namespace service
 {
   namespace coin
@@ -31,11 +19,10 @@ namespace service
       struct Command : public infra::IJsonParser, public infra::IJsonDumper
       {
         constexpr Command()
-            : carousel_id("CarouselId"),
-              event_id("EventId"),
-              type("Type"),
-              command("Command"),
-              sequence_num("SequenceNum") {}
+            : carousel_id(BMF_CAROUSEL_ID),
+              event_id(BMF_EVENT_ID),
+              type(BMF_TYPE),
+              sequence_num(BMF_SEQUENCE_NUM) {}
 
         virtual bool parse(const char *json_str, size_t len) override
         {
@@ -72,11 +59,6 @@ namespace service
                 res = res && type.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
                 i++;
               }
-              else if (infra::jsoneq(json_str, &t[i], command.name) == 0)
-              {
-                res = res && command.value.replace(json_str + t[i + 1].start, t[i + 1].end - t[i + 1].start);
-                i++;
-              }
               else if (infra::jsoneq(json_str, &t[i], sequence_num.name) == 0)
               {
                 sequence_num.value = strtol(json_str + t[i + 1].start, nullptr, 10);
@@ -91,11 +73,10 @@ namespace service
           int shift = 0;
           if (json_str)
           {
-            shift = snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":"%s","%s":"%s","%s":%d})",
+            shift = snprintf(json_str, cap, R"({"%s":"%s","%s":"%s","%s":"%s","%s":%d})",
                                   carousel_id.name, carousel_id.value.data(),
                                   event_id.name, event_id.value.data(),
                                   type.name, type.value.data(),
-                                  command.name, command.value.data(),
                                   sequence_num.name, (int)sequence_num.value);
             //  printf("cap:%d, len:%d\n", cap, len);
           }
@@ -106,14 +87,12 @@ namespace service
           carousel_id.value.clear();
           event_id.value.clear();
           type.value.clear();
-          command.value.clear();
           sequence_num.value = 0;
         }
 
         infra::Named<CarouselIdContainer> carousel_id;
         infra::Named<EventIdContainer> event_id;
         infra::Named<TypeContainer> type;
-        infra::Named<CommandContainer> command;
         infra::Named<uint32_t> sequence_num;
       };
     }

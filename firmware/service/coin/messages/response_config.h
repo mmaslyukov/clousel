@@ -20,12 +20,12 @@ namespace service
                        const char *error,
                        Config config,
                        uint32_t sequence_num)
-            : type(TypeContainer(BMTR_CONFIG), "Type"),
-              carousel_id(CarouselIdContainer(carousel_id), "CarouselId"),
-              correlation_id(EventIdContainer(correlation_id), "CorrelationId"),
-              sequence_num(sequence_num, "SequenceNum"),
-              config(config, "Config"),
-              error_str(error, "Error") {}
+            : type(TypeContainer(BMTR_CONFIG), BMF_TYPE),
+              carousel_id(CarouselIdContainer(carousel_id), BMF_CAROUSEL_ID),
+              correlation_id(EventIdContainer(correlation_id), BMF_CORRELATION_ID),
+              sequence_num(sequence_num, BMF_SEQUENCE_NUM),
+              config(config, BMF_CONFIG),
+              error_str(error, BMF_ERROR) {}
         virtual size_t dump(char *json_str, size_t cap) const override
         {
           int shift = 0;

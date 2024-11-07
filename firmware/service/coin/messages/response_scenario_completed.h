@@ -30,11 +30,11 @@ namespace service
       struct ResponseScenarioCompleted : public infra::IJsonDumper
       {
         ResponseScenarioCompleted(const char *carousel_id, const char *correlation_id, const char *error, uint32_t sequence_num = 0)
-            : type(TypeContainer(BMTR_SC_COMPLETED), "Type"),
-              carousel_id(CarouselIdContainer(carousel_id), "CarouselId"),
-              correlation_id(EventIdContainer(correlation_id), "CorrelationId"),
-              sequence_num(sequence_num, "SequenceNum"),
-              error_str(error, "Error") {}
+            : type(TypeContainer(BMTE_COMPLETED), BMF_TYPE),
+              carousel_id(CarouselIdContainer(carousel_id), BMF_CAROUSEL_ID),
+              correlation_id(EventIdContainer(correlation_id), BMF_CORRELATION_ID),
+              sequence_num(sequence_num, BMF_SEQUENCE_NUM),
+              error_str(error, BMF_ERROR) {}
         virtual size_t dump(char *json_str, size_t cap) const override
         {
           int shift = 0;

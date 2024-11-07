@@ -14,12 +14,12 @@ namespace service
     {
       struct CommandComposite : public infra::IJsonParser //, public infra::IJsonDumper
       {
-        constexpr CommandComposite() : config("Config") {}
+        constexpr CommandComposite() : config(BMF_CONFIG) {}
         virtual bool parse(const char *json_str, size_t len) override
         {
           bool res = true;
           res = res && general.parse(json_str, len);
-          if (general.command.value.eq(BMTC_CONFIG_WRITE))
+          if (general.type.value.eq(BMTC_CONFIG_WRITE))
           {
             res = res && parse_config(json_str, len);
           }

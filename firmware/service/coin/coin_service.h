@@ -15,8 +15,8 @@
 #include "port_coin_controller_broker.h"
 
 /**
- * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"MessageCommand","CarouselId":"550e8400-e29b-41d4-a716-446655440000","SequenceNum":1,"EventId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29","Command":"ConfigWrite", "Config":{"BrokerUrl":"mqtt://192.168.0.150:1883","BrokerUsername":"CLOUSEL","BrokerPassword":"123wqeqwsaddsa","CoinPulseCnt":1,"CoinPulseDur":100}}'
- * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"MessageCommand","CarouselId":"550e8400-e29b-41d4-a716-446655440000","SequenceNum":1,"EventId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29","Command":"ConfigRead"}'
+ * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"Req.Config.Read","CarId":"550e8400-e29b-41d4-a716-446655440000","SeqNum":1,"EvId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29"}'
+ * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"Req.Config.Write","CarId":"550e8400-e29b-41d4-a716-446655440000","SeqNum":1,"EvtId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29", "Config":{"BrokerUrl":"mqtt://192.168.0.150:1883","BrokerUsername":"CLOUSEL","BrokerPassword":"123wqeqwsaddsa","CoinPulseCnt":2,"CoinPulseDur":100}}'
  */
 namespace service
 {
@@ -129,27 +129,27 @@ namespace service
             if (!_last_cmd.general.carousel_id.value.eq(_config.carousel_id()->value()))
             {
               err = "Carousel id mismatch";
-              _logger.err().log(TAG, "%s, got:%s, own:%s", _last_cmd.general.carousel_id.value.data(), _config.carousel_id()->value());
+              _logger.err().log(TAG, "%s, got:'%s', own:'%s'",_last_cmd.general.carousel_id.name, _last_cmd.general.carousel_id.value.data(), _config.carousel_id()->value());
               break;
             }
 
-            if (!_last_cmd.general.type.value.eq(BMT_COMMAND))
-            {
-              err = "Unexpected message type";
-              _logger.err().log(TAG, "%s: '%s'", err, _last_cmd.general.type.value.data());
-              break;
-            }
+            // if (!_last_cmd.general.type.value.eq(BMT_COMMAND))
+            // {
+            //   err = "Unexpected message type";
+            //   _logger.err().log(TAG, "%s: '%s'", err, _last_cmd.general.type.value.data());
+            //   break;
+            // }
 
-            _logger.inf().log(TAG, "Message is command message with exact command: %s", _last_cmd.general.command.value.data());
+            // _logger.inf().log(TAG, "Message is command message with exact command: %s", _last_cmd.general.type.value.data());
 
-            if (_last_cmd.general.command.value.eq(BMTC_PLAY))
+            if (_last_cmd.general.type.value.eq(BMTC_PLAY))
             {
               _logger.inf().log(TAG, "Scenario has been reseted");
               _scenario.reset();
               _status.led_coin_blink();
               publish(msg::ResponseAck(_last_cmd.general.carousel_id.value.data(), _last_cmd.general.event_id.value.data(), nullptr, sequence_num()));
             }
-            else if (_last_cmd.general.command.value.eq(BMTC_CONFIG_WRITE))
+            else if (_last_cmd.general.type.value.eq(BMTC_CONFIG_WRITE))
             {
               if (!_last_cmd.config.value.broker_url.value.empty())
               {
@@ -189,7 +189,7 @@ namespace service
                 err = "Fail to save new configuration";
               }
             }
-            else if (_last_cmd.general.command.value.eq(BMTC_CONFIG_READ))
+            else if (_last_cmd.general.type.value.eq(BMTC_CONFIG_READ))
             {
               auto *props = _config.coin_pulse_props();
               publish(msg::ResponseConfig(
@@ -202,7 +202,7 @@ namespace service
             else
             {
               err = "Unexpected command";
-              _logger.err().log(TAG, "%s: '%s'", err, _last_cmd.general.command.value.data());
+              _logger.err().log(TAG, "%s: '%s'", err, _last_cmd.general.type.value.data());
               break;
             }
           } while (false);

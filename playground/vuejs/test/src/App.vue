@@ -3,7 +3,7 @@ import { onMounted, reactive } from 'vue'
 import axios from 'axios'
 //// eslint-disable-next-line no-unused-vars
 const widgetData = reactive({
-    rounds: 0,
+    current: 0,
     max: 0,
     status: "",
 })
@@ -49,20 +49,19 @@ async function fetchCarousel(id) {
         data = response.data;
     } catch (e) {
         data.Status = "unknown"
-        data.rounds = 0;
-        data.RoundsReady = 0;
+        data.Rounds = 0;
     }
-    if (data.RoundsReady > widgetData.max) {
-        widgetData.max = data.RoundsReady;
+    if (data.Rounds > widgetData.max) {
+        widgetData.max = data.Rounds;
     }
-    widgetData.rounds = data.RoundsReady;
+    widgetData.current = data.Rounds;
 
     widgetData.status = data.Status;
     if (widgetData.status != "online") {
         buttons.showRefill = false;
         buttons.showPlay = false;
     } else {
-        buttons.showRefill = widgetData.rounds > 0 ? false : true;
+        buttons.showRefill = widgetData.current > 0 ? false : true;
         buttons.showPlay = !buttons.showRefill;
     }
     return true;
@@ -73,7 +72,7 @@ async function fetchCarousel(id) {
 
 onMounted(() => {
     console.log("App mounted");
-    widgetData.rounds = 0;
+    widgetData.current = 0;
     widgetData.max = 0;
     buttons.showRefill = false;
     buttons.showPlay = false;
@@ -82,10 +81,10 @@ onMounted(() => {
 });
 
 function onClick() {
-    if (widgetData.rounds > 0) {
-        widgetData.rounds--;
+    if (widgetData.current > 0) {
+        widgetData.current--;
     }
-    buttons.showRefill = widgetData.rounds > 0 ? false : true;
+    buttons.showRefill = widgetData.current > 0 ? false : true;
     buttons.showPlay = !buttons.showRefill;
 }
 
