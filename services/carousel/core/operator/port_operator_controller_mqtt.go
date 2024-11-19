@@ -1,5 +1,5 @@
 package operator
 
 type IPortOperatorControllerMqtt interface {
-	Notify(msg IMessageGeneric)
+	BrokerNotify(msg IMessageGeneric)
 }

@@ -22,11 +22,11 @@ func register(r *http.Request, manPort manager.IPortManagerControllerApi, log *z
 	decoder := json.NewDecoder(r.Body)
 	if err = decoder.Decode(&carousel); err == nil {
 		if err = manPort.Register(carousel); err == nil {
-			log.Info().Str("CarouselId", carousel.Cid).Msg("Rest.Register")
+			log.Info().Str("CarouselId", carousel.CarId).Msg("Rest.Register")
 		}
 	}
 	if err != nil {
-		log.Err(err).Str("CarouselId", carousel.Cid).Msg("Rest.Register")
+		log.Err(err).Str("CarouselId", carousel.CarId).Msg("Rest.Register")
 	}
 	return err
 }
@@ -37,16 +37,16 @@ func unregister(r *http.Request, manPort manager.IPortManagerControllerApi, log 
 	var carousel manager.Carousel //{Cid: "", Oid: ""}
 	var err error
 	if qvalue, ok := r.URL.Query()[qcNameCid]; ok {
-		carousel.Cid = qvalue[0]
+		carousel.CarId = qvalue[0]
 	}
 	if qvalue, ok := r.URL.Query()[qcNameOid]; ok {
-		carousel.Oid = qvalue[0]
+		carousel.OwnId = qvalue[0]
 	}
 	if err = manPort.Unregister(carousel); err == nil {
-		log.Info().Str(qcNameOid, carousel.Oid).Str(qcNameCid, carousel.Cid).Msg("Rest.Unregister")
+		log.Info().Str(qcNameOid, carousel.OwnId).Str(qcNameCid, carousel.CarId).Msg("Rest.Unregister")
 	}
 	if err != nil {
-		log.Err(err).Str(qcNameOid, carousel.Oid).Str(qcNameCid, carousel.Cid).Msg("Rest.Unregister")
+		log.Err(err).Str(qcNameOid, carousel.OwnId).Str(qcNameCid, carousel.CarId).Msg("Rest.Unregister")
 	}
 	return err
 }
@@ -72,13 +72,13 @@ func readOwned(r *http.Request, manPort manager.IPortManagerControllerApi, log *
 	return recordArray, err
 }
 
-func readSnapshot(r *http.Request, opPort operator.IPortOperatorControllerApi, log *zerolog.Logger) (operator.SnapshotData, error) {
+func readSnapshot(r *http.Request, opPort operator.IPortOperatorControllerApi, log *zerolog.Logger) (*operator.SnapshotData, error) {
 	const qcName = "CarouselId"
 	var err error
 	var qvalue []string
 	var ok bool
 	var carousel operator.Carousel
-	var sd operator.SnapshotData
+	var sd *operator.SnapshotData
 	if qvalue, ok = r.URL.Query()[qcName]; ok {
 		carousel.CarId = qvalue[0]
 		if sd, err = opPort.Read(carousel); err == nil {
@@ -105,7 +105,7 @@ func readPending(_ *http.Request, opPort operator.IPortOperatorControllerApi, lo
 	return cdArray, err
 }
 
-func readWStatus(r *http.Request, opPort operator.IPortOperatorControllerApi, log *zerolog.Logger) ([]operator.SnapshotData, error) {
+func readByStatus(r *http.Request, opPort operator.IPortOperatorControllerApi, log *zerolog.Logger) ([]operator.SnapshotData, error) {
 	const qcName = "Status"
 	var status string
 	var err error
@@ -114,14 +114,14 @@ func readWStatus(r *http.Request, opPort operator.IPortOperatorControllerApi, lo
 	var sd []operator.SnapshotData
 	if qvalue, ok = r.URL.Query()[qcName]; ok {
 		status = qvalue[0]
-		if sd, err = opPort.ReadWStatus(status); err == nil {
-			log.Info().Str(qcName, status).Msg("Rest.readWStatus")
+		if sd, err = opPort.ReadByStatus(status); err == nil {
+			log.Info().Str(qcName, status).Msg("Rest.readByStatus")
 		}
 	} else {
 		err = fmt.Errorf("Cannot find '%s' key in the query", qcName)
 	}
 	if err != nil {
-		log.Err(err).Str(qcName, status).Msg("Rest.readWStatus")
+		log.Err(err).Str(qcName, status).Msg("Rest.readByStatus")
 	}
 	return sd, err
 }
@@ -203,7 +203,7 @@ func New(manPort manager.IPortManagerControllerApi, opPort operator.IPortOperato
 	router.HandleFunc("GET /carousel/wstatus",
 		func(w http.ResponseWriter, r *http.Request) {
 			setupCORS(&w)
-			if recordArray, err := readWStatus(r, opPort, log); err == nil {
+			if recordArray, err := readByStatus(r, opPort, log); err == nil {
 				json.NewEncoder(w).Encode(recordArray)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)

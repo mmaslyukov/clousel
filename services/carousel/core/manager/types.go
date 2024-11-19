@@ -1,6 +1,12 @@
 package manager
 
 type Carousel struct {
-	Cid string `json:"CarouselId"`
-	Oid string `json:"OwnerId"`
+	CarId string `json:"CarouselId"`
+	OwnId string `json:"OwnerId"`
+}
+
+type SnapshotData struct {
+	CarId  string `json:"CarouselId"`
+	Status string
+	Rounds int
 }

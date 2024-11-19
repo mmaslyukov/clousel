@@ -9,6 +9,10 @@ const (
 	CarouselStatusNameNew     = "new"
 )
 
+const (
+	CarouselEventMax = 50
+)
+
 type Carousel struct {
 	CarId string
 }
@@ -47,7 +51,6 @@ type SnapshotData struct {
 	CarId  string `json:"CarouselId"`
 	Status string
 	Rounds int
-	Error  *string
 	Extra  *string
 }
 

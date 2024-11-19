@@ -18,7 +18,9 @@ const (
 )
 
 type Operator struct {
-	repo    IPortOperatorAdapterRepository
+	evRepo  IPortOperatorAdapterEventRepository
+	crRepo  IPortOperatorAdapterCarouselRepository
+	snRepo  IPortOperatorAdapterSnapshotRepository
 	broker  IPortOperatorAdapterMqtt
 	config  IPortOperatorAdapterConfig
 	log     *zerolog.Logger
@@ -26,12 +28,14 @@ type Operator struct {
 }
 
 func New(
-	repo IPortOperatorAdapterRepository,
+	evRepo IPortOperatorAdapterEventRepository,
+	crRepo IPortOperatorAdapterCarouselRepository,
+	snRepo IPortOperatorAdapterSnapshotRepository,
 	broker IPortOperatorAdapterMqtt,
 	config IPortOperatorAdapterConfig,
 	log *zerolog.Logger) *Operator {
 
-	op := &Operator{repo: repo, broker: broker, config: config, log: log, retries: make(map[string]int)}
+	op := &Operator{evRepo: evRepo, crRepo: crRepo, snRepo: snRepo, broker: broker, config: config, log: log, retries: make(map[string]int)}
 	return op
 }
 
@@ -44,7 +48,7 @@ func (o *Operator) Refill(c Carousel, rounds int) error {
 			err = fmt.Errorf("Operator.Refill: Invalid Rounds value: %d", rounds)
 			break
 		}
-		if exists, err = o.repo.IsExists(c); err != nil {
+		if exists, err = o.crRepo.OperatorIsExistsCarousel(c.CarId); err != nil {
 			break
 		}
 		if !exists {
@@ -53,7 +57,7 @@ func (o *Operator) Refill(c Carousel, rounds int) error {
 		}
 		rd := RoundsData{CarId: c.CarId, Rounds: rounds, EvtId: uuid.New()}
 		o.log.Info().Str("CarouselId", rd.CarId).Str("EventId", rd.EvtId.String()).Int("Rounds", rd.Rounds).Msg("Operator.Refill: About to write an event")
-		err = o.repo.Refill(&rd)
+		err = o.evRepo.Refill(&rd)
 	}
 	return err
 }
@@ -63,7 +67,7 @@ func (o *Operator) Play(c Carousel) error {
 	var exists bool
 
 	for ok := true; ok; ok = false {
-		if exists, err = o.repo.IsExists(c); err != nil {
+		if exists, err = o.crRepo.OperatorIsExistsCarousel(c.CarId); err != nil {
 			break
 		}
 		if !exists {
@@ -71,8 +75,8 @@ func (o *Operator) Play(c Carousel) error {
 			break
 		}
 		// TODO add read shapshot table
-		var s SnapshotData
-		if s, err = o.repo.ReadAsSnapshot(&c); err != nil {
+		var s *SnapshotData
+		if s, err = o.readSnapshot(&c); err != nil {
 			break
 		}
 		// TODO remove false
@@ -87,7 +91,7 @@ func (o *Operator) Play(c Carousel) error {
 
 		pd := PlayData{CarId: c.CarId, EvtId: uuid.New()}
 		o.log.Info().Str("CarouselId", pd.CarId).Str("EventId", pd.EvtId.String()).Msg("Operator.Play: About to write an event")
-		if err = o.repo.Play(&pd); err != nil {
+		if err = o.evRepo.Play(&pd); err != nil {
 			break
 		}
 		o.log.Info().Str("CarouselId", pd.CarId).Str("EventId", pd.EvtId.String()).Str("Type", MsgTypeRequestPlay).Msg("Operator.Play: About to publish the Play event")
@@ -96,20 +100,19 @@ func (o *Operator) Play(c Carousel) error {
 	return err
 }
 
-func (o *Operator) Read(c Carousel) (SnapshotData, error) {
+func (o *Operator) Read(c Carousel) (*SnapshotData, error) {
 	var err error
 	var exists bool
-	var sd SnapshotData
+	var sd *SnapshotData
 	for ok := true; ok; ok = false {
-		if exists, err = o.repo.IsExists(c); err != nil {
+		if exists, err = o.crRepo.OperatorIsExistsCarousel(c.CarId); err != nil {
 			break
 		}
 		if !exists {
 			err = fmt.Errorf("Operator.Read: Doesn't exists")
 			break
 		}
-		// TODO add read shapshot table
-		sd, err = o.repo.ReadAsSnapshot(&c)
+		sd, err = o.readSnapshot(&c)
 	}
 	if err != nil {
 		o.log.Err(err).Str("CarouselId", c.CarId).Msg("Operator.Read")
@@ -117,12 +120,12 @@ func (o *Operator) Read(c Carousel) (SnapshotData, error) {
 	return sd, err
 }
 
-func (o *Operator) ReadWStatus(status string) ([]SnapshotData, error) {
-	return o.repo.ReadWStatus(status)
+func (o *Operator) ReadByStatus(status string) ([]SnapshotData, error) {
+	return o.evRepo.ReadByStatus(status)
 
 }
 func (o *Operator) ReadPending() ([]CompositeData, error) {
-	return o.repo.ReadPending()
+	return o.evRepo.ReadPending()
 }
 
 func (o *Operator) Tick(t *time.Ticker) {
@@ -152,28 +155,53 @@ func (o *Operator) Tick(t *time.Ticker) {
 			monitorSnapshot += time.Since(ts)
 			if monitorSnapshot > tmMonitorSnapshotPeriod {
 				monitorSnapshot = 0
-				o.log.Debug().Msg("Monitor Snaphsot")
+				go func() {
+					o.log.Debug().Msg("Monitor Snaphsot")
+					if err := o.monitorSnapshot(); err != nil {
+						o.log.Err(err).Msg("Operator.Tick: Execution monitorSnapshot failed")
+					}
+				}()
 			}
 			ts = time.Now()
 		}
 	}
 }
 
+func (o *Operator) readSnapshot(c *Carousel) (*SnapshotData, error) {
+	var err error
+	var snapshot *SnapshotData
+	var snapshotEvent *SnapshotData
+
+	snapshotEvent, err = o.evRepo.ReadAsSnapshot(c.CarId)
+	if snapshot, err = o.snRepo.OperatorLoadSnapshot(c.CarId); err == nil && snapshot != nil && snapshotEvent != nil {
+		snapshot.Status = snapshotEvent.Status
+		snapshot.Rounds += snapshotEvent.Rounds
+	} else {
+		snapshot = snapshotEvent
+	}
+
+	return snapshot, err
+}
+
+func (o *Operator) monitorEventsTable() error {
+	return nil
+}
+
 func (o *Operator) monitorPending() error {
 	var err error
 	var experiedArray []CompositeData
-	if experiedArray, err = o.repo.ReadPending(); err == nil {
+	if experiedArray, err = o.evRepo.ReadPending(); err == nil {
 		for _, c := range experiedArray {
 			if err = o.publish(&RequestPlay{MessageGeneric: MessageGeneric{MsgType: MsgTypeRequestPlay, CarId: c.CarId}, EvtId: c.EvtId.String()}); err == nil {
 				o.retries[c.EvtId.String()]++
-				o.log.Info().Int("Retries", o.retries[c.EvtId.String()]).Str("CarouselId", c.CarId).Str("EventId", c.EvtId.String()).Msg("Re-Sent request")
+				o.log.Info().Int("Retries", o.retries[c.EvtId.String()]).Str("CarouselId", c.CarId).Str("EventId", c.EvtId.String()).Msg("Operator.monitorPending: Re-Sent request")
 				if o.retries[c.EvtId.String()] > maxRetries {
-					if err = o.repo.ClearPendingFlag(&PlayData{CarId: c.CarId, EvtId: c.EvtId}); err != nil {
-						o.log.Err(err).Str("CarouselId", c.CarId).Str("EventId", c.EvtId.String()).Msg("Fail to clear pering flag")
+					if err = o.evRepo.ClearPendingFlag(&PlayData{CarId: c.CarId, EvtId: c.EvtId}); err != nil {
+						o.log.Err(err).Str("CarouselId", c.CarId).Str("EventId", c.EvtId.String()).Msg("Operator.monitorPending: Fail to clear pering flag")
 					}
 				}
 			} else {
-				o.log.Err(err).Int("Retries", o.retries[c.EvtId.String()]).Str("CarouselId", c.CarId).Str("EventId", c.EvtId.String()).Msg("Fail to Re-Send request")
+				o.log.Err(err).Int("Retries", o.retries[c.EvtId.String()]).Str("CarouselId", c.CarId).Str("EventId", c.EvtId.String()).Msg("Operator.monitorPending: Fail to Re-Send request")
 			}
 		}
 	}
@@ -183,21 +211,84 @@ func (o *Operator) monitorPending() error {
 func (o *Operator) monitorExpired() error {
 	var err error
 	var experiedArray []CompositeData
-	if experiedArray, err = o.repo.ReadExpired(tmCarouselOffline); err == nil {
+	if experiedArray, err = o.evRepo.ReadExpired(tmCarouselOffline); err == nil {
 		for _, c := range experiedArray {
 			status := CarouselStatusNameOffline
 			if c.Status != nil && *c.Status == status {
 				continue
 			}
 			newStatus := StatusData{CarId: c.CarId, EvtId: uuid.New(), Status: &status}
-			o.log.Info().Str("CarouselId", newStatus.CarId).Str("Status", *newStatus.Status).Msg("Mark as offline")
-			err = o.repo.Mark(&newStatus)
+			o.log.Info().Str("CarouselId", newStatus.CarId).Str("Status", *newStatus.Status).Msg("Operator.monitorExpired: Mark as offline")
+			err = o.evRepo.Mark(&newStatus)
 		}
 	}
 	return err
 }
 
-func (o *Operator) Notify(msg IMessageGeneric) {
+func (o *Operator) monitorSnapshot() error {
+	var err error
+	var ids []string
+
+	for ok := true; ok; ok = false {
+		if ids, err = o.crRepo.OperarotReadAllCarouselIds(); err != nil {
+			o.log.Err(err).Msg("Operator.monitorSnapshot: Can't find any carousels")
+			break
+		}
+		var cdArray []CompositeData
+		var snapshotEvent *SnapshotData
+		var snapshot *SnapshotData
+		for _, id := range ids {
+			if cdArray, err = o.evRepo.Read(id); err != nil {
+				o.log.Err(err).Str("CarouselId", id).Msg("Operator.monitorSnapshot: Can't read a carousels")
+				break
+			}
+			if snapshotEvent, err = o.evRepo.ReadAsSnapshot(id); err != nil {
+				o.log.Err(err).Str("CarouselId", id).Msg("Operator.monitorSnapshot: Can't read as a snapshot")
+				break
+			}
+			if snapshot, err = o.snRepo.OperatorLoadSnapshot(id); err != nil || snapshot == nil {
+				snapshot = &SnapshotData{CarId: snapshotEvent.CarId, Status: "", Rounds: 0}
+			}
+
+			cdArrayLen := len(cdArray) - 1 // skip latest event, so len-1
+			if cdArrayLen < CarouselEventMax {
+				continue
+			}
+
+			for index, cd := range cdArray {
+				if index == cdArrayLen {
+					break
+				}
+				if err = o.evRepo.RemoveByEvent(cd.EvtId); err != nil {
+					o.log.Error().Str("CarouselId", id).Str("EventId", cd.EvtId.String()).Msg("Operator.monitorSnapshot: Can't remove a record")
+				}
+			}
+			snapshot.Rounds += snapshotEvent.Rounds
+			snapshot.Status = snapshotEvent.Status
+
+			if err = o.snRepo.OperatorStoreSnapshot(snapshot); err != nil {
+				o.log.Error().Str("CarouselId", id).Msg("Operator.monitorSnapshot: Can't save a snapshot")
+			}
+		}
+
+	}
+
+	// var experiedArray []CompositeData
+	// if experiedArray, err = o.evRepo.Read(&Carousel{}); err == nil {
+	// 	for _, c := range experiedArray {
+	// 		status := CarouselStatusNameOffline
+	// 		if c.Status != nil && *c.Status == status {
+	// 			continue
+	// 		}
+	// 		newStatus := StatusData{CarId: c.CarId, EvtId: uuid.New(), Status: &status}
+	// 		o.log.Info().Str("CarouselId", newStatus.CarId).Str("Status", *newStatus.Status).Msg("Mark as offline")
+	// 		err = o.evRepo.Mark(&newStatus)
+	// 	}
+	// }
+	return err
+}
+
+func (o *Operator) BrokerNotify(msg IMessageGeneric) {
 	var err error
 	switch m := msg.(type) {
 	case *ResponseAck:
@@ -208,7 +299,7 @@ func (o *Operator) Notify(msg IMessageGeneric) {
 		err = o.heartbeat(m)
 	}
 	if err != nil {
-		o.log.Err(err).Str("Type", msg.Name()).Msg("Operator.Notify")
+		o.log.Err(err).Str("Type", msg.Name()).Msg("Operator.BrokerNotify")
 	}
 }
 
@@ -223,14 +314,7 @@ func (o *Operator) heartbeat(msg *EventHeartbeat) error {
 		carouselError = nil
 		status = CarouselStatusNameOnline
 	}
-	// o.log.Debug().Str(msg.CarId).Str(msg.)
-	// var snapshot SnapshotData
-	// snapshot, err = o.repo.ReadAsSnapshot(&Carousel{CarId: msg.CarId})
-	// if status != snapshot.Status {
-	err = o.repo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: carouselError})
-	// } else if snapshot.Status == CarouselStatusNameOnline {
-	// err = o.repo.UpdateTime(&Carousel{CarId: msg.CarId})
-	// }
+	err = o.evRepo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: carouselError})
 	return err
 }
 
@@ -239,7 +323,7 @@ func (o *Operator) completed(msg *EventCompleted) error {
 	if len(msg.Error) > 0 {
 		status := CarouselStatusNameFailure
 		o.log.Warn().Str("MsgType", msg.MsgType).Str("CarouselId", msg.CarId).Str("Error", msg.Error).Str("Status", status).Msg("Operator.complete: Scenario has been completed with failure")
-		err = o.repo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: &msg.Error})
+		err = o.evRepo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: &msg.Error})
 	} else {
 		o.log.Info().Str("MsgType", msg.MsgType).Str("CarouselId", msg.CarId).Msg("Operator.complete: Scenario has been completed successfully")
 	}
@@ -253,10 +337,10 @@ func (o *Operator) ack(msg *ResponseAck) error {
 		if len(msg.Error) > 0 {
 			status := CarouselStatusNameFailure
 			o.log.Warn().Str("MsgType", msg.MsgType).Str("CarouselId", msg.CarId).Str("CorrelationId", msg.CorId).Str("Error", msg.Error).Str("Status", status).Msg("Operator.ack: Carousel is not operable")
-			err = o.repo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: &msg.Error})
+			err = o.evRepo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: &msg.Error})
 		} else {
 			o.log.Info().Str("MsgType", msg.MsgType).Str("CarouselId", msg.CarId).Str("CorrelationId", msg.CorId).Msg("Operator.ack: Confirmed")
-			err = o.repo.Confirm(&StatusData{CarId: msg.CarId, EvtId: correlationId})
+			err = o.evRepo.Confirm(&StatusData{CarId: msg.CarId, EvtId: correlationId})
 		}
 	}
 	return err

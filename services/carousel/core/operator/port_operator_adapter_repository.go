@@ -6,8 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type IPortOperatorAdapterRepository interface {
-	IsExists(c Carousel) (bool, error)
+type IPortOperatorAdapterEventRepository interface {
 	Refill(rd *RoundsData) error
 	Play(rd *PlayData) error
 
@@ -16,16 +15,24 @@ type IPortOperatorAdapterRepository interface {
 	UpdateTime(rd *Carousel) error
 	ClearPendingFlag(rd *EventData) error
 
-	Read(c *Carousel) ([]CompositeData, error)
-	// ReadOwned(ownerId string) ([]CompositeData, error)
-	ReadAsSnapshot(c *Carousel) (SnapshotData, error)
-	SaveSnapshot(c *SnapshotData) error
-	// ReadPending(c *Carousel) ([]CompositeData, error)
+	Read(carId string) ([]CompositeData, error)
+	ReadAsSnapshot(carId string) (*SnapshotData, error)
 	ReadPendingTimeout(dur time.Duration) ([]CompositeData, error)
 	ReadPending() ([]CompositeData, error)
-	ReadWStatus(status string) ([]SnapshotData, error)
+	ReadByStatus(status string) ([]SnapshotData, error)
 	ReadExpired(dur time.Duration) ([]CompositeData, error)
 
-	Remove(c *Carousel) error
+	Remove(carId string) error
 	RemoveByEvent(evtId uuid.UUID) error
+}
+
+type IPortOperatorAdapterCarouselRepository interface {
+	OperatorIsExistsCarousel(carId string) (bool, error)
+	OperarotReadAllCarouselIds() ([]string, error)
+}
+
+type IPortOperatorAdapterSnapshotRepository interface {
+	OperatorLoadSnapshot(carId string) (*SnapshotData, error)
+	OperatorStoreSnapshot(sd *SnapshotData) error
+	OperatorDeleteSnapshot(carId string) error
 }

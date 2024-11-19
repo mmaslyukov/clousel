@@ -176,7 +176,7 @@ func (b *Broker) msgHandler(m paho.Message) {
 			b.log.Warn().Str("topic", parent_topic).Msg("Have no listener")
 			break
 		}
-		listener.Notify(msg)
+		listener.BrokerNotify(msg)
 	}
 }
 func (b *Broker) subscribeInternal() error {

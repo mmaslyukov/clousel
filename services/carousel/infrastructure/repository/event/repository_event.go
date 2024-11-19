@@ -55,14 +55,14 @@ func (r *RepositoryEvent) Play(pd *operator.PlayData) error {
 	return err
 }
 
-func (r *RepositoryEvent) Remove(c *operator.Carousel) error {
+func (r *RepositoryEvent) Remove(carId string) error {
 	var err error
-	prompt := fmt.Sprintf("delete from '%s' where CarouselId='%s'", table_event, c.CarId)
+	prompt := fmt.Sprintf("delete from '%s' where CarouselId='%s'", table_event, carId)
 	err = r.drv.Session(func(db *sql.DB) error {
 		if _, err = db.Exec(prompt); err == nil {
 			r.log.Debug().Str("SQL", prompt).Msg("Repository.Event.Remove: Success")
 		} else {
-			r.log.Err(err).Str("SQL", prompt).Str("CarouselId", c.CarId).Msgf("Repository.Event.Remove: Fail to Remove entries from '%s' table", table_event)
+			r.log.Err(err).Str("SQL", prompt).Str("CarouselId", carId).Msgf("Repository.Event.Remove: Fail to Remove entries from '%s' table", table_event)
 		}
 		return err
 	})
@@ -71,7 +71,7 @@ func (r *RepositoryEvent) Remove(c *operator.Carousel) error {
 
 func (r *RepositoryEvent) RemoveByEvent(evtId uuid.UUID) error {
 	var err error
-	prompt := fmt.Sprintf("delete from '%s' where EvtId='%s'", table_event, evtId.String())
+	prompt := fmt.Sprintf("delete from '%s' where EventId='%s'", table_event, evtId.String())
 	err = r.drv.Session(func(db *sql.DB) error {
 		if _, err = db.Exec(prompt); err == nil {
 			r.log.Debug().Str("SQL", prompt).Msg("Repository.Event.RemoveByEvent: Success")
@@ -200,10 +200,10 @@ func (r *RepositoryEvent) ClearPendingFlag(ed *operator.EventData) error {
 	return err
 }
 
-func (r *RepositoryEvent) Read(c *operator.Carousel) ([]operator.CompositeData, error) {
+func (r *RepositoryEvent) Read(carId string) ([]operator.CompositeData, error) {
 	var err error
 	var recordArray []operator.CompositeData
-	prompt := fmt.Sprintf("select * from '%s' where CarouselId='%s'", table_event, c.CarId)
+	prompt := fmt.Sprintf("select * from '%s' where CarouselId='%s'", table_event, carId)
 	if err = r.drv.Session(func(db *sql.DB) error {
 		var rows *sql.Rows
 		if rows, err = db.Query(prompt); err == nil {
@@ -213,25 +213,26 @@ func (r *RepositoryEvent) Read(c *operator.Carousel) ([]operator.CompositeData, 
 				if err := rows.Scan(&cd.CarId, &cd.EvtId, &cd.Time, &cd.Status, &cd.Rounds, &cd.Pending, &cd.Error, &cd.Extra); err == nil {
 					recordArray = append(recordArray, cd)
 				} else {
-					r.log.Err(err).Str("CarouselId", c.CarId).Msgf("Repository.Event.Read: Scan of '%s' failed", table_event)
+					r.log.Err(err).Str("CarouselId", carId).Msgf("Repository.Event.Read: Scan of '%s' failed", table_event)
 				}
 			}
-			r.log.Debug().Str("SQL", prompt).Str("CarouselId", c.CarId).Msg("Repository.Event.Read: Success")
+			r.log.Debug().Str("SQL", prompt).Str("CarouselId", carId).Msg("Repository.Event.Read: Success")
 		} else {
-			r.log.Err(err).Str("SQL", prompt).Str("CarouselId", c.CarId).Msgf("Repository.Event.Read: Fail to Read from '%s' table", table_event)
+			r.log.Err(err).Str("SQL", prompt).Str("CarouselId", carId).Msgf("Repository.Event.Read: Fail to Read from '%s' table", table_event)
 		}
 		return err
 	}); err != nil {
-		r.log.Err(err).Str("SQL", prompt).Str("CarouselId", c.CarId).Msgf("Repository.Event.Read: Fail to Read from %s table", table_event)
+		r.log.Err(err).Str("SQL", prompt).Str("CarouselId", carId).Msgf("Repository.Event.Read: Fail to Read from %s table", table_event)
 	}
 	return recordArray, err
 }
 
-func (r *RepositoryEvent) ReadAsSnapshot(c *operator.Carousel) (operator.SnapshotData, error) {
+func (r *RepositoryEvent) ReadAsSnapshot(carId string) (*operator.SnapshotData, error) {
 	var err error
 	var snapshot operator.SnapshotData
 	var recordArray []operator.CompositeData
-	prompt := fmt.Sprintf("select * from '%s' where CarouselId='%s'", table_event, c.CarId)
+
+	prompt := fmt.Sprintf("select * from '%s' where CarouselId='%s'", table_event, carId)
 	if err = r.drv.Session(func(db *sql.DB) error {
 		var rows *sql.Rows
 		if rows, err = db.Query(prompt); err == nil {
@@ -241,12 +242,12 @@ func (r *RepositoryEvent) ReadAsSnapshot(c *operator.Carousel) (operator.Snapsho
 				if err := rows.Scan(&cd.CarId, &cd.EvtId, &cd.Time, &cd.Status, &cd.Rounds, &cd.Pending, &cd.Error, &cd.Extra); err == nil {
 					recordArray = append(recordArray, cd)
 				} else {
-					r.log.Err(err).Str("CarouselId", c.CarId).Msgf("Repository.Event.ReadAsSnapshot: Scan of '%s' failed", table_event)
+					r.log.Err(err).Str("CarouselId", carId).Msgf("Repository.Event.ReadAsSnapshot: Scan of '%s' failed", table_event)
 				}
 			}
-			r.log.Debug().Str("SQL", prompt).Str("CarouselId", c.CarId).Msgf("Repository.Event.ReadAsSnapshot: Success to Read from '%s' table", table_event)
+			r.log.Debug().Str("SQL", prompt).Str("CarouselId", carId).Msgf("Repository.Event.ReadAsSnapshot: Success to Read from '%s' table", table_event)
 		} else {
-			r.log.Err(err).Str("SQL", prompt).Str("CarouselId", c.CarId).Msgf("Repository.Event.ReadAsSnapshot: Fail to Read from '%s' table", table_event)
+			r.log.Err(err).Str("SQL", prompt).Str("CarouselId", carId).Msgf("Repository.Event.ReadAsSnapshot: Fail to Read from '%s' table", table_event)
 		}
 		return err
 	}); err == nil {
@@ -262,48 +263,18 @@ func (r *RepositoryEvent) ReadAsSnapshot(c *operator.Carousel) (operator.Snapsho
 					snapshot.Extra = record.Error
 				}
 				snapshot.Rounds += record.Rounds
-				snapshot.Error = record.Error
+				// snapshot.Error = record.Error
 				// r.log.Debug().Str("Time", record.Time).Str("CarouselId", c.CarId).Msgf("Status: %v, Error: %v", record.Status, record.Error)
 
 			}
 		} else {
 			err = fmt.Errorf("Have no entries")
-			r.log.Err(err).Str("SQL", prompt).Str("CarouselId", c.CarId).Msgf("Repository.Event.ReadAsSnapshot: Fail to Read from '%s' table", table_event)
+			r.log.Err(err).Str("SQL", prompt).Str("CarouselId", carId).Msgf("Repository.Event.ReadAsSnapshot: Fail to Read from '%s' table", table_event)
 		}
 	} else {
-		r.log.Err(err).Str("SQL", prompt).Str("CarouselId", c.CarId).Msgf("Repository.Event.ReadAsSnapshot: Fail to Read from '%s' table", table_event)
+		r.log.Err(err).Str("SQL", prompt).Str("CarouselId", carId).Msgf("Repository.Event.ReadAsSnapshot: Fail to Read from '%s' table", table_event)
 	}
-	return snapshot, err
-}
-
-func (r *RepositoryEvent) SaveSnapshot(c *operator.SnapshotData) error {
-	var prompt string
-	var err error
-	for ok := true; ok; ok = false {
-		prompt = fmt.Sprintf("insert or ignore into '%s' (CarouselId, Status, Rounds) values ('%s', '%s', %d)", table_snapshot, c.CarId, c.Status, c.Rounds)
-		if err = r.drv.Session(func(db *sql.DB) error {
-			if _, err = db.Exec(prompt); err == nil {
-				r.log.Debug().Str("SQL", prompt).Send()
-			} else {
-				r.log.Err(err).Str("SQL", prompt).Str("CarouselId", c.CarId).Msg("Repository.Event.SaveSnapshot: Failure")
-			}
-			return err
-		}); err != nil {
-			break
-		}
-		prompt = fmt.Sprintf("update '%s' set Status='%s', Rounds=%d) where CarouselId='%s'", table_snapshot, c.Status, c.Rounds, c.CarId)
-		if err = r.drv.Session(func(db *sql.DB) error {
-			if _, err = db.Exec(prompt); err == nil {
-				r.log.Debug().Str("SQL", prompt).Send()
-			} else {
-				r.log.Err(err).Str("SQL", prompt).Str("CarouselId", c.CarId).Msg("Repository.Event.SaveSnapshot: Failure")
-			}
-			return err
-		}); err != nil {
-			break
-		}
-	}
-	return err
+	return &snapshot, err
 }
 
 func (r *RepositoryEvent) ReadPendingTimeout(dur time.Duration) ([]operator.CompositeData, error) {
@@ -337,22 +308,22 @@ func (r *RepositoryEvent) ReadPending() ([]operator.CompositeData, error) {
 	}
 	return recordArray, err
 }
-func (r *RepositoryEvent) ReadWStatus(status string) ([]operator.SnapshotData, error) {
+func (r *RepositoryEvent) ReadByStatus(status string) ([]operator.SnapshotData, error) {
 	var err error
 	var sdArray []operator.SnapshotData
 	var carouselArray []manager.Carousel
 	if carouselArray, err = r.readCarousels(); err == nil {
 		for _, c := range carouselArray {
-			var snapshot operator.SnapshotData
-			if snapshot, err = r.ReadAsSnapshot(&operator.Carousel{CarId: c.Cid}); err == nil {
+			var snapshot *operator.SnapshotData
+			if snapshot, err = r.ReadAsSnapshot(c.CarId); err == nil {
 				// if snapshot.Status != operator.CarouselStatusNameOnline && snapshot.Status != operator.CarouselStatusNameNew {
 				if snapshot.Status == status {
-					sdArray = append(sdArray, snapshot)
+					sdArray = append(sdArray, *snapshot)
 				}
 			}
 		}
 	} else {
-		r.log.Err(err).Msgf("Repository.Event.ReadWStatus: Fail to Read")
+		r.log.Err(err).Msgf("Repository.Event.ReadByStatus: Fail to Read")
 	}
 	return sdArray, err
 }
@@ -380,7 +351,7 @@ func (r *RepositoryEvent) readCarousels() ([]manager.Carousel, error) {
 			defer rows.Close()
 			for rows.Next() {
 				var c manager.Carousel
-				if err := rows.Scan(&c.Cid, &c.Oid); err == nil {
+				if err := rows.Scan(&c.CarId, &c.OwnId); err == nil {
 					carouselArray = append(carouselArray, c)
 				} else {
 					r.log.Err(err).Msgf("Repository.Event.readCarousels: Scan of '%s' failed", table_carousel)
@@ -420,7 +391,7 @@ func (r *RepositoryEvent) ReadExpired(dur time.Duration) ([]operator.CompositeDa
 	if carouselArray, err = r.readCarousels(); err == nil {
 		for _, c := range carouselArray {
 			var cdp *operator.CompositeData
-			if cdp, err = r.readLastEntryExpired(&operator.Carousel{CarId: c.Cid}, dur); err == nil && cdp != nil {
+			if cdp, err = r.readLastEntryExpired(&operator.Carousel{CarId: c.CarId}, dur); err == nil && cdp != nil {
 				cdArray = append(cdArray, *cdp)
 			}
 		}

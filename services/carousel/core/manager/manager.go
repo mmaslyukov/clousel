@@ -1,29 +1,28 @@
 package manager
 
 import (
+	"fmt"
+
 	"github.com/rs/zerolog"
 )
 
 type Manager struct {
-	repoMan IPortManagerAdapterRepository
-	log     *zerolog.Logger
+	crRepo IPortManagerAdapterCarouselRepository
+	snRepo IPortManagerAdapterSnapshotRepository
+	log    *zerolog.Logger
 }
 
-func New(repoMan IPortManagerAdapterRepository, log *zerolog.Logger) *Manager {
-	return &Manager{repoMan: repoMan, log: log}
+func New(crRepo IPortManagerAdapterCarouselRepository, snRepo IPortManagerAdapterSnapshotRepository, log *zerolog.Logger) *Manager {
+	return &Manager{crRepo: crRepo, snRepo: snRepo, log: log}
 }
 
 func (m *Manager) Register(c Carousel) error {
 	var err error
 	for ok := true; ok; ok = false {
-		if err = m.repoMan.AddCarousel(c); err != nil {
+		if err = m.crRepo.ManagerAddCarousel(c); err != nil {
 			break
 		}
-		if exists, e := m.repoMan.IsCarouselExistsInEvents(c); e != nil || exists {
-			err = e
-			break
-		}
-		if err = m.repoMan.AddEventWithStatusNew(c); err != nil {
+		if err = m.snRepo.ManagerStoreNewSnapshot(c.CarId); err != nil {
 			break
 		}
 	}
@@ -31,8 +30,15 @@ func (m *Manager) Register(c Carousel) error {
 }
 
 func (m *Manager) Unregister(c Carousel) error {
-	return m.repoMan.Remove(c)
+	if len(c.CarId) > 0 {
+		return m.crRepo.ManagerRemoveCarousel(c.CarId)
+	} else if len(c.OwnId) > 0 {
+		return m.crRepo.ManagerRemoveOwner(c.OwnId)
+	} else {
+		return fmt.Errorf("Invalid argument")
+	}
 }
+
 func (m *Manager) Read(ownerId string) ([]Carousel, error) {
-	return m.repoMan.ReadOwned(ownerId)
+	return m.crRepo.ManagerReadOwnedCarousel(ownerId)
 }

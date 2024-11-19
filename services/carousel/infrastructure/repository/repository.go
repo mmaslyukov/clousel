@@ -4,6 +4,7 @@ import (
 	"carousel/infrastructure/repository/carousel"
 	"carousel/infrastructure/repository/driver"
 	"carousel/infrastructure/repository/event"
+	"carousel/infrastructure/repository/snapshot"
 
 	"github.com/rs/zerolog"
 	_ "modernc.org/sqlite"
@@ -21,6 +22,12 @@ func (e exportEvet) New(drv driver.IDBDriver, log *zerolog.Logger) *event.Reposi
 	return event.New(drv, log)
 }
 
+type exportSnapshot struct{}
+
+func (e exportSnapshot) New(drv driver.IDBDriver, log *zerolog.Logger) *snapshot.RepositorySnapshot {
+	return snapshot.New(drv, log)
+}
+
 type exportDriver struct{}
 
 func (e exportDriver) New(path string) driver.IDBDriver {
@@ -30,3 +37,4 @@ func (e exportDriver) New(path string) driver.IDBDriver {
 var DriverSQLite = exportDriver{}
 var Carousel = exportCarousel{}
 var Event = exportEvet{}
+var Snaphsot = exportSnapshot{}

@@ -1,10 +1,13 @@
 package manager
 
-type IPortManagerAdapterRepository interface {
-	Remove(c Carousel) error
-	ReadOwned(ownerId string) ([]Carousel, error)
-	AddCarousel(c Carousel) error
-	AddEventWithStatusNew(c Carousel) error
-	IsCarouselExistsInEvents(c Carousel) (bool, error)
-	// IsExists(c Carousel) (bool, error)
+type IPortManagerAdapterCarouselRepository interface {
+	ManagerIsExistsCarousel(carId string) (bool, error)
+	ManagerRemoveCarousel(carId string) error
+	ManagerRemoveOwner(ownerId string) error
+	ManagerReadOwnedCarousel(ownerId string) ([]Carousel, error)
+	ManagerAddCarousel(c Carousel) error
+}
+
+type IPortManagerAdapterSnapshotRepository interface {
+	ManagerStoreNewSnapshot(carId string) error
 }
