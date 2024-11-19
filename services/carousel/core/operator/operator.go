@@ -57,7 +57,7 @@ func (o *Operator) Refill(c Carousel, rounds int) error {
 		}
 		rd := RoundsData{CarId: c.CarId, Rounds: rounds, EvtId: uuid.New()}
 		o.log.Info().Str("CarouselId", rd.CarId).Str("EventId", rd.EvtId.String()).Int("Rounds", rd.Rounds).Msg("Operator.Refill: About to write an event")
-		err = o.evRepo.Refill(&rd)
+		err = o.evRepo.OperatorRefill(&rd)
 	}
 	return err
 }
@@ -91,7 +91,7 @@ func (o *Operator) Play(c Carousel) error {
 
 		pd := PlayData{CarId: c.CarId, EvtId: uuid.New()}
 		o.log.Info().Str("CarouselId", pd.CarId).Str("EventId", pd.EvtId.String()).Msg("Operator.Play: About to write an event")
-		if err = o.evRepo.Play(&pd); err != nil {
+		if err = o.evRepo.OperatorPlay(&pd); err != nil {
 			break
 		}
 		o.log.Info().Str("CarouselId", pd.CarId).Str("EventId", pd.EvtId.String()).Str("Type", MsgTypeRequestPlay).Msg("Operator.Play: About to publish the Play event")
@@ -121,11 +121,11 @@ func (o *Operator) Read(c Carousel) (*SnapshotData, error) {
 }
 
 func (o *Operator) ReadByStatus(status string) ([]SnapshotData, error) {
-	return o.evRepo.ReadByStatus(status)
+	return o.evRepo.OperatorReadByStatus(status)
 
 }
 func (o *Operator) ReadPending() ([]CompositeData, error) {
-	return o.evRepo.ReadPending()
+	return o.evRepo.OperatorReadPending()
 }
 
 func (o *Operator) Tick(t *time.Ticker) {
@@ -172,7 +172,7 @@ func (o *Operator) readSnapshot(c *Carousel) (*SnapshotData, error) {
 	var snapshot *SnapshotData
 	var snapshotEvent *SnapshotData
 
-	snapshotEvent, err = o.evRepo.ReadAsSnapshot(c.CarId)
+	snapshotEvent, err = o.evRepo.OperatorReadAsSnapshot(c.CarId)
 	if snapshot, err = o.snRepo.OperatorLoadSnapshot(c.CarId); err == nil && snapshot != nil && snapshotEvent != nil {
 		snapshot.Status = snapshotEvent.Status
 		snapshot.Rounds += snapshotEvent.Rounds
@@ -190,13 +190,13 @@ func (o *Operator) monitorEventsTable() error {
 func (o *Operator) monitorPending() error {
 	var err error
 	var experiedArray []CompositeData
-	if experiedArray, err = o.evRepo.ReadPending(); err == nil {
+	if experiedArray, err = o.evRepo.OperatorReadPending(); err == nil {
 		for _, c := range experiedArray {
 			if err = o.publish(&RequestPlay{MessageGeneric: MessageGeneric{MsgType: MsgTypeRequestPlay, CarId: c.CarId}, EvtId: c.EvtId.String()}); err == nil {
 				o.retries[c.EvtId.String()]++
 				o.log.Info().Int("Retries", o.retries[c.EvtId.String()]).Str("CarouselId", c.CarId).Str("EventId", c.EvtId.String()).Msg("Operator.monitorPending: Re-Sent request")
 				if o.retries[c.EvtId.String()] > maxRetries {
-					if err = o.evRepo.ClearPendingFlag(&PlayData{CarId: c.CarId, EvtId: c.EvtId}); err != nil {
+					if err = o.evRepo.OperatorClearPendingFlag(&PlayData{CarId: c.CarId, EvtId: c.EvtId}); err != nil {
 						o.log.Err(err).Str("CarouselId", c.CarId).Str("EventId", c.EvtId.String()).Msg("Operator.monitorPending: Fail to clear pering flag")
 					}
 				}
@@ -211,7 +211,7 @@ func (o *Operator) monitorPending() error {
 func (o *Operator) monitorExpired() error {
 	var err error
 	var experiedArray []CompositeData
-	if experiedArray, err = o.evRepo.ReadExpired(tmCarouselOffline); err == nil {
+	if experiedArray, err = o.evRepo.OperatorReadExpired(tmCarouselOffline); err == nil {
 		for _, c := range experiedArray {
 			status := CarouselStatusNameOffline
 			if c.Status != nil && *c.Status == status {
@@ -219,7 +219,7 @@ func (o *Operator) monitorExpired() error {
 			}
 			newStatus := StatusData{CarId: c.CarId, EvtId: uuid.New(), Status: &status}
 			o.log.Info().Str("CarouselId", newStatus.CarId).Str("Status", *newStatus.Status).Msg("Operator.monitorExpired: Mark as offline")
-			err = o.evRepo.Mark(&newStatus)
+			err = o.evRepo.OperatorMark(&newStatus)
 		}
 	}
 	return err
@@ -238,11 +238,11 @@ func (o *Operator) monitorSnapshot() error {
 		var snapshotEvent *SnapshotData
 		var snapshot *SnapshotData
 		for _, id := range ids {
-			if cdArray, err = o.evRepo.Read(id); err != nil {
+			if cdArray, err = o.evRepo.OperatorRead(id); err != nil {
 				o.log.Err(err).Str("CarouselId", id).Msg("Operator.monitorSnapshot: Can't read a carousels")
 				break
 			}
-			if snapshotEvent, err = o.evRepo.ReadAsSnapshot(id); err != nil {
+			if snapshotEvent, err = o.evRepo.OperatorReadAsSnapshot(id); err != nil {
 				o.log.Err(err).Str("CarouselId", id).Msg("Operator.monitorSnapshot: Can't read as a snapshot")
 				break
 			}
@@ -259,7 +259,7 @@ func (o *Operator) monitorSnapshot() error {
 				if index == cdArrayLen {
 					break
 				}
-				if err = o.evRepo.RemoveByEvent(cd.EvtId); err != nil {
+				if err = o.evRepo.OperatorRemoveByEvent(cd.EvtId); err != nil {
 					o.log.Error().Str("CarouselId", id).Str("EventId", cd.EvtId.String()).Msg("Operator.monitorSnapshot: Can't remove a record")
 				}
 			}
@@ -314,7 +314,7 @@ func (o *Operator) heartbeat(msg *EventHeartbeat) error {
 		carouselError = nil
 		status = CarouselStatusNameOnline
 	}
-	err = o.evRepo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: carouselError})
+	err = o.evRepo.OperatorMark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: carouselError})
 	return err
 }
 
@@ -323,7 +323,7 @@ func (o *Operator) completed(msg *EventCompleted) error {
 	if len(msg.Error) > 0 {
 		status := CarouselStatusNameFailure
 		o.log.Warn().Str("MsgType", msg.MsgType).Str("CarouselId", msg.CarId).Str("Error", msg.Error).Str("Status", status).Msg("Operator.complete: Scenario has been completed with failure")
-		err = o.evRepo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: &msg.Error})
+		err = o.evRepo.OperatorMark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: &msg.Error})
 	} else {
 		o.log.Info().Str("MsgType", msg.MsgType).Str("CarouselId", msg.CarId).Msg("Operator.complete: Scenario has been completed successfully")
 	}
@@ -337,10 +337,10 @@ func (o *Operator) ack(msg *ResponseAck) error {
 		if len(msg.Error) > 0 {
 			status := CarouselStatusNameFailure
 			o.log.Warn().Str("MsgType", msg.MsgType).Str("CarouselId", msg.CarId).Str("CorrelationId", msg.CorId).Str("Error", msg.Error).Str("Status", status).Msg("Operator.ack: Carousel is not operable")
-			err = o.evRepo.Mark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: &msg.Error})
+			err = o.evRepo.OperatorMark(&StatusData{CarId: msg.CarId, EvtId: uuid.New(), Status: &status, Error: &msg.Error})
 		} else {
 			o.log.Info().Str("MsgType", msg.MsgType).Str("CarouselId", msg.CarId).Str("CorrelationId", msg.CorId).Msg("Operator.ack: Confirmed")
-			err = o.evRepo.Confirm(&StatusData{CarId: msg.CarId, EvtId: correlationId})
+			err = o.evRepo.OperatorConfirm(&StatusData{CarId: msg.CarId, EvtId: correlationId})
 		}
 	}
 	return err

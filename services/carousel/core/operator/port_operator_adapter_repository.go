@@ -7,23 +7,23 @@ import (
 )
 
 type IPortOperatorAdapterEventRepository interface {
-	Refill(rd *RoundsData) error
-	Play(rd *PlayData) error
+	OperatorRefill(rd *RoundsData) error
+	OperatorPlay(rd *PlayData) error
 
-	Mark(s *StatusData) error
-	Confirm(s *StatusData) error
-	UpdateTime(rd *Carousel) error
-	ClearPendingFlag(rd *EventData) error
+	OperatorMark(s *StatusData) error
+	OperatorConfirm(s *StatusData) error
+	OperatorUpdateTime(rd *Carousel) error
+	OperatorClearPendingFlag(rd *EventData) error
 
-	Read(carId string) ([]CompositeData, error)
-	ReadAsSnapshot(carId string) (*SnapshotData, error)
-	ReadPendingTimeout(dur time.Duration) ([]CompositeData, error)
-	ReadPending() ([]CompositeData, error)
-	ReadByStatus(status string) ([]SnapshotData, error)
-	ReadExpired(dur time.Duration) ([]CompositeData, error)
+	OperatorRead(carId string) ([]CompositeData, error)
+	OperatorReadAsSnapshot(carId string) (*SnapshotData, error)
+	OperatorReadPendingTimeout(dur time.Duration) ([]CompositeData, error)
+	OperatorReadPending() ([]CompositeData, error)
+	OperatorReadByStatus(status string) ([]SnapshotData, error)
+	OperatorReadExpired(dur time.Duration) ([]CompositeData, error)
 
-	Remove(carId string) error
-	RemoveByEvent(evtId uuid.UUID) error
+	OperatorRemove(carId string) error
+	OperatorRemoveByEvent(evtId uuid.UUID) error
 }
 
 type IPortOperatorAdapterCarouselRepository interface {
