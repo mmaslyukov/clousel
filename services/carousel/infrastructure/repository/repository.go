@@ -18,8 +18,8 @@ func (e exportCarousel) New(drv driver.IDBDriver, log *zerolog.Logger) *carousel
 
 type exportEvet struct{}
 
-func (e exportEvet) New(drv driver.IDBDriver, log *zerolog.Logger) *event.RepositoryEvent {
-	return event.New(drv, log)
+func (e exportEvet) New(drv driver.IDBDriver, crRepo event.IRepositoryCarousel, log *zerolog.Logger) *event.RepositoryEvent {
+	return event.New(drv, crRepo, log)
 }
 
 type exportSnapshot struct{}

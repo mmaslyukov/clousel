@@ -11,7 +11,7 @@ CREATE TABLE "carousel-event" (
     "Time" datetime DEFAULT CURRENT_TIMESTAMP,
     -- "Reason" string NOT NULL,
     "Status" string,
-    "Rounds" int NOT NULL,
+    "Tickets" int NOT NULL,
     "Pending" int,
     "Error" string,
     "Extra" string,
@@ -24,7 +24,7 @@ CREATE TABLE "carousel-event" (
 CREATE TABLE "carousel-snapshot" (
     "CarouselId" string UNIQUE NOT NULL,
     "Status" int NOT NULL,
-    "Rounds" int NOT NULL,
+    "Tickets" int NOT NULL,
     "Extra" string,
     FOREIGN KEY (
         "CarouselId"

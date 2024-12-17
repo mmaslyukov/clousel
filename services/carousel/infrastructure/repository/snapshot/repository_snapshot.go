@@ -24,7 +24,7 @@ func New(drv driver.IDBDriver, log *zerolog.Logger) *RepositorySnapshot {
 
 // "CarouselId" string UNIQUE NOT NULL,
 // "Status" int NOT NULL,
-// "Rounds" int NOT NULL,
+// "Tickets" int NOT NULL,
 // "Extra" string,
 
 func (r *RepositorySnapshot) OperatorLoadSnapshot(carId string) (*operator.SnapshotData, error) {
@@ -32,7 +32,7 @@ func (r *RepositorySnapshot) OperatorLoadSnapshot(carId string) (*operator.Snaps
 	var snapshot operator.SnapshotData
 	prompt := fmt.Sprintf("select * from '%s' where CarouselId='%s'", table_snapshot, carId)
 	if err = r.drv.Session(func(db *sql.DB) error {
-		if err = db.QueryRow(prompt).Scan(&snapshot.CarId, &snapshot.Status, &snapshot.Rounds, &snapshot.Extra); err == nil {
+		if err = db.QueryRow(prompt).Scan(&snapshot.CarId, &snapshot.Status, &snapshot.Tickets, &snapshot.Extra); err == nil {
 			r.log.Debug().Str("SQL", prompt).Msg("Repository.Snapshot.OperatorLoadSnapshot: Success")
 		}
 		return err
@@ -46,7 +46,7 @@ func (r *RepositorySnapshot) OperatorStoreSnapshot(sd *operator.SnapshotData) er
 	var prompt string
 	var err error
 	for ok := true; ok; ok = false {
-		prompt = fmt.Sprintf("insert or ignore into '%s' (CarouselId, Status, Rounds) values ('%s', '%s', %d)", table_snapshot, sd.CarId, sd.Status, sd.Rounds)
+		prompt = fmt.Sprintf("insert or ignore into '%s' (CarouselId, Status, Tickets) values ('%s', '%s', %d)", table_snapshot, sd.CarId, sd.Status, sd.Tickets)
 		if err = r.drv.Session(func(db *sql.DB) error {
 			if _, err = db.Exec(prompt); err == nil {
 				r.log.Debug().Str("SQL", prompt).Send()
@@ -57,7 +57,7 @@ func (r *RepositorySnapshot) OperatorStoreSnapshot(sd *operator.SnapshotData) er
 		}); err != nil {
 			break
 		}
-		prompt = fmt.Sprintf("update '%s' set Status='%s', Rounds=%d where CarouselId='%s'", table_snapshot, sd.Status, sd.Rounds, sd.CarId)
+		prompt = fmt.Sprintf("update '%s' set Status='%s', Tickets=%d where CarouselId='%s'", table_snapshot, sd.Status, sd.Tickets, sd.CarId)
 		if err = r.drv.Session(func(db *sql.DB) error {
 			if _, err = db.Exec(prompt); err == nil {
 				r.log.Debug().Str("SQL", prompt).Send()
@@ -73,7 +73,7 @@ func (r *RepositorySnapshot) OperatorStoreSnapshot(sd *operator.SnapshotData) er
 }
 
 func (r *RepositorySnapshot) ManagerStoreNewSnapshot(carId string) error {
-	return r.OperatorStoreSnapshot(&operator.SnapshotData{CarId: carId, Status: operator.CarouselStatusNameNew, Rounds: 0})
+	return r.OperatorStoreSnapshot(&operator.SnapshotData{CarId: carId, Status: operator.CarouselStatusNameNew, Tickets: 0})
 }
 
 func (r *RepositorySnapshot) OperatorDeleteSnapshot(carId string) error {

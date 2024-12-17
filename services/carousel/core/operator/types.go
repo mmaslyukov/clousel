@@ -23,9 +23,9 @@ type EventData struct {
 }
 type PlayData = EventData
 
-type RoundsData struct {
+type TicketsData struct {
 	CarId  string `json:"CarouselId"`
-	Rounds int
+	Tickets int
 	EvtId  uuid.UUID
 }
 
@@ -41,7 +41,7 @@ type CompositeData struct {
 	EvtId   uuid.UUID
 	Time    string
 	Status  *string
-	Rounds  int
+	Tickets  int
 	Pending *int
 	Error   *string
 	Extra   *string
@@ -50,7 +50,7 @@ type CompositeData struct {
 type SnapshotData struct {
 	CarId  string `json:"CarouselId"`
 	Status string
-	Rounds int
+	Tickets int
 	Extra  *string
 }
 

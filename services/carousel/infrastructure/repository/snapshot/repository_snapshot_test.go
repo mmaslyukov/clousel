@@ -30,7 +30,7 @@ func TestTopicAppend(t *testing.T) {
 	log := logger.New()
 	drv := repository.DriverSQLite.New(dbPath)
 	sr := snapshot.New(drv, &log)
-	sd := operator.SnapshotData{CarId: "Test", Status: "New", Rounds: 0}
+	sd := operator.SnapshotData{CarId: "Test", Status: "New", Tickets: 0}
 	pre(t)
 	_, err = sr.OperatorLoadSnapshot(sd.CarId)
 	if err == nil {

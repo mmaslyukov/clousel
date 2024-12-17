@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/rs/zerolog"
 )
@@ -19,15 +20,16 @@ func setupCORS(w *http.ResponseWriter) {
 func register(r *http.Request, manPort manager.IPortManagerControllerApi, log *zerolog.Logger) error {
 	var err error
 	var carousel manager.Carousel
-	decoder := json.NewDecoder(r.Body)
-	if err = decoder.Decode(&carousel); err == nil {
+	for ok := true; ok; ok = false {
+		carousel.OwnId = r.PostFormValue("OwnerId")
+		carousel.CarId = r.PostFormValue("CarouselId")
 		if err = manPort.Register(carousel); err == nil {
-			log.Info().Str("CarouselId", carousel.CarId).Msg("Rest.Register")
+			log.Info().Str("CarouselId", carousel.CarId).Msg("Rest.Register: Success")
+		} else {
+			log.Err(err).Str("CarouselId", carousel.CarId).Msg("Rest.Register: Fail")
 		}
 	}
-	if err != nil {
-		log.Err(err).Str("CarouselId", carousel.CarId).Msg("Rest.Register")
-	}
+
 	return err
 }
 
@@ -43,10 +45,9 @@ func unregister(r *http.Request, manPort manager.IPortManagerControllerApi, log 
 		carousel.OwnId = qvalue[0]
 	}
 	if err = manPort.Unregister(carousel); err == nil {
-		log.Info().Str(qcNameOid, carousel.OwnId).Str(qcNameCid, carousel.CarId).Msg("Rest.Unregister")
-	}
-	if err != nil {
-		log.Err(err).Str(qcNameOid, carousel.OwnId).Str(qcNameCid, carousel.CarId).Msg("Rest.Unregister")
+		log.Info().Str(qcNameOid, carousel.OwnId).Str(qcNameCid, carousel.CarId).Msg("Rest.Unregister: Success")
+	} else {
+		log.Err(err).Str(qcNameOid, carousel.OwnId).Str(qcNameCid, carousel.CarId).Msg("Rest.Unregister: Fail")
 	}
 	return err
 }
@@ -60,14 +61,14 @@ func readOwned(r *http.Request, manPort manager.IPortManagerControllerApi, log *
 	var recordArray []manager.Carousel
 	if qvalue, ok = r.URL.Query()[qcName]; ok {
 		ownerId = qvalue[0]
-		if recordArray, err = manPort.Read(ownerId); err == nil {
-			log.Info().Str(qcName, ownerId).Msg("Rest.ReadOwned")
-		}
+		recordArray, err = manPort.Read(ownerId)
 	} else {
 		err = fmt.Errorf("Cannot find '%s' key in the query", qcName)
 	}
 	if err != nil {
-		log.Err(err).Str("OwnerId", ownerId).Msg("Rest.ReadOwned")
+		log.Err(err).Str("OwnerId", ownerId).Msg("Rest.ReadOwned: Fail")
+	} else {
+		log.Info().Str("OwnerId", ownerId).Msg("Rest.ReadOwned: Success")
 	}
 	return recordArray, err
 }
@@ -81,14 +82,14 @@ func readSnapshot(r *http.Request, opPort operator.IPortOperatorControllerApi, l
 	var sd *operator.SnapshotData
 	if qvalue, ok = r.URL.Query()[qcName]; ok {
 		carousel.CarId = qvalue[0]
-		if sd, err = opPort.Read(carousel); err == nil {
-			log.Info().Str(qcName, carousel.CarId).Msg("Rest.ReadSnapshot")
-		}
+		sd, err = opPort.Read(carousel)
 	} else {
 		err = fmt.Errorf("Cannot find '%s' key in the query", qcName)
 	}
 	if err != nil {
-		log.Err(err).Str("CarousleId", carousel.CarId).Msg("Rest.ReadSnapshot")
+		log.Err(err).Str("CarousleId", carousel.CarId).Msg("Rest.ReadSnapshot: Fail")
+	} else {
+		log.Info().Str("CarousleId", carousel.CarId).Msg("Rest.ReadSnapshot: Success")
 	}
 	return sd, err
 }
@@ -97,10 +98,9 @@ func readPending(_ *http.Request, opPort operator.IPortOperatorControllerApi, lo
 	var err error
 	var cdArray []operator.CompositeData
 	if cdArray, err = opPort.ReadPending(); err == nil {
-		log.Info().Msg("Rest.readPending")
-	}
-	if err != nil {
-		log.Err(err).Msg("Rest.readPending")
+		log.Info().Msg("Rest.readPending: Success")
+	} else {
+		log.Err(err).Msg("Rest.readPending: Fail")
 	}
 	return cdArray, err
 }
@@ -114,14 +114,14 @@ func readByStatus(r *http.Request, opPort operator.IPortOperatorControllerApi, l
 	var sd []operator.SnapshotData
 	if qvalue, ok = r.URL.Query()[qcName]; ok {
 		status = qvalue[0]
-		if sd, err = opPort.ReadByStatus(status); err == nil {
-			log.Info().Str(qcName, status).Msg("Rest.readByStatus")
-		}
+		sd, err = opPort.ReadByStatus(status)
 	} else {
 		err = fmt.Errorf("Cannot find '%s' key in the query", qcName)
 	}
 	if err != nil {
-		log.Err(err).Str(qcName, status).Msg("Rest.readByStatus")
+		log.Err(err).Str(qcName, status).Msg("Rest.readByStatus: Fail")
+	} else {
+		log.Info().Str(qcName, status).Msg("Rest.readByStatus: Success")
 	}
 	return sd, err
 }
@@ -130,29 +130,31 @@ func play(r *http.Request, opPort operator.IPortOperatorControllerApi, log *zero
 	const qcNameCid = "CarouselId"
 	var c operator.Carousel
 	var err error
-	if qvalue, ok := r.URL.Query()[qcNameCid]; ok {
-		c.CarId = qvalue[0]
-	}
-	if err = opPort.Play(operator.Carousel{CarId: c.CarId}); err == nil {
-		log.Info().Str(qcNameCid, c.CarId).Msg("Rest.Play")
-	}
-	if err != nil {
-		log.Err(err).Str(qcNameCid, c.CarId).Msg("Rest.Play")
+	c.CarId = r.PostFormValue("CarouselId")
+	if err = opPort.Play(c); err == nil {
+		log.Info().Str(qcNameCid, c.CarId).Msg("Rest.Play: Success")
+	} else {
+		log.Err(err).Str(qcNameCid, c.CarId).Msg("Rest.Play: Fail")
 	}
 	return err
 }
 
 func refill(r *http.Request, opPort operator.IPortOperatorControllerApi, log *zerolog.Logger) error {
 	var err error
-	var rd RefillData
-	decoder := json.NewDecoder(r.Body)
-	if err = decoder.Decode(&rd); err == nil {
-		if err = opPort.Refill(operator.Carousel{CarId: rd.CarId}, rd.Rounds); err == nil {
-			log.Info().Str("CarouselId", rd.CarId).Int("Rounds", rd.Rounds).Msg("Rest.Refill")
+	var carousel operator.Carousel
+	for ok := true; ok; ok = false {
+		var tickets int
+		tickets, err = strconv.Atoi(r.PostFormValue("Tickets"))
+		if err != nil {
+			log.Err(err).Msg("Rest.Refill: Fail to parse 'Tickets' key in POST request")
+			break
 		}
-	}
-	if err != nil {
-		log.Err(err).Str("CarouselId", rd.CarId).Int("Rounds", rd.Rounds).Msg("Rest.Refill")
+		carousel.CarId = r.PostFormValue("CarouselId")
+		if err = opPort.Refill(carousel, tickets); err == nil {
+			log.Info().Str("CarouselId", carousel.CarId).Int("Tickets", tickets).Msg("Rest.Refill: Success")
+		} else {
+			log.Err(err).Str("CarouselId", carousel.CarId).Msg("Rest.Refill: Fail")
+		}
 	}
 	return err
 }
@@ -186,7 +188,8 @@ func New(manPort manager.IPortManagerControllerApi, opPort operator.IPortOperato
 			if snapshot, err := readSnapshot(r, opPort, log); err == nil {
 				json.NewEncoder(w).Encode(snapshot)
 			} else {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				// w.WriteHeader(http.StatusInternalServerError)
 			}
 			return
 		})
@@ -220,7 +223,7 @@ func New(manPort manager.IPortManagerControllerApi, opPort operator.IPortOperato
 			}
 			return
 		})
-	router.HandleFunc("GET /carousel/play",
+	router.HandleFunc("POST /carousel/play",
 		func(w http.ResponseWriter, r *http.Request) {
 			setupCORS(&w)
 			if err := play(r, opPort, log); err == nil {

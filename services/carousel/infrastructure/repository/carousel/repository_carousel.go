@@ -40,7 +40,7 @@ func (r *RepositoryCarousel) ManagerAddCarousel(c manager.Carousel) error {
 
 // func (r *RepositoryCarousel) ManagerStoreNewSnapshot(carId string) error {
 // 	var prompt string
-// 	prompt = fmt.Sprintf("insert into '%s' (CarouselId, EventId, Rounds, Status) values ('%s', '%s', %d, '%s')", table_snapshot, carId, uuid.New().String(), 0, operator.CarouselStatusNameNew)
+// 	prompt = fmt.Sprintf("insert into '%s' (CarouselId, EventId, Tickets, Status) values ('%s', '%s', %d, '%s')", table_snapshot, carId, uuid.New().String(), 0, operator.CarouselStatusNameNew)
 // 	return r.drv.Session(func(db *sql.DB) error {
 // 		var err error
 // 		if _, err = db.Exec(prompt); err == nil {
@@ -111,6 +111,33 @@ func (r *RepositoryCarousel) ManagerRemoveOwner(ownerId string) error {
 		return err
 	})
 	return err
+}
+
+func (r *RepositoryCarousel) ReadCarouselsIds() ([]string, error) {
+	var err error
+	var idArray []string
+	prompt := fmt.Sprintf("select * from '%s'", table_carousel)
+	if err = r.drv.Session(func(db *sql.DB) error {
+		var rows *sql.Rows
+		if rows, err = db.Query(prompt); err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var c manager.Carousel
+				if err := rows.Scan(&c.CarId, &c.OwnId); err == nil {
+					idArray = append(idArray, c.CarId)
+				} else {
+					r.log.Err(err).Msgf("Repository.Carousel.ReadCarouselsIds: Scan of '%s' failed", table_carousel)
+				}
+			}
+			r.log.Debug().Str("SQL", prompt).Msg("Repository.Carousel.ReadCarouselsIds: Success")
+		} else {
+			r.log.Err(err).Str("SQL", prompt).Msgf("Repository.Carousel.ReadCarouselsIds: Fail to Read from '%s' table", table_carousel)
+		}
+		return err
+	}); err != nil {
+		r.log.Err(err).Str("SQL", prompt).Msgf("Repository.Carousel.ReadCarouselsIds: Fail to Read from '%s' table", table_carousel)
+	}
+	return idArray, err
 }
 
 func (r *RepositoryCarousel) ManagerReadOwnedCarousel(ownerId string) ([]manager.Carousel, error) {

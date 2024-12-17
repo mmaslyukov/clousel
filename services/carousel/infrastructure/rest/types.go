@@ -2,5 +2,5 @@ package rest
 
 type RefillData struct {
 	CarId  string `json:"CarouselId"`
-	Rounds int    `json:"Rounds"`
+	Tickets int    `json:"Tickets"`
 }

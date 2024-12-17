@@ -39,13 +39,13 @@ func New(
 	return op
 }
 
-func (o *Operator) Refill(c Carousel, rounds int) error {
+func (o *Operator) Refill(c Carousel, tickets int) error {
 	var err error
 	var exists bool
 
 	for ok := true; ok; ok = false {
-		if rounds < 1 {
-			err = fmt.Errorf("Operator.Refill: Invalid Rounds value: %d", rounds)
+		if tickets < 1 {
+			err = fmt.Errorf("Operator.Refill: Invalid Tickets value: %d", tickets)
 			break
 		}
 		if exists, err = o.crRepo.OperatorIsExistsCarousel(c.CarId); err != nil {
@@ -55,8 +55,8 @@ func (o *Operator) Refill(c Carousel, rounds int) error {
 			err = fmt.Errorf("Operator.Refill: Doesn't exists")
 			break
 		}
-		rd := RoundsData{CarId: c.CarId, Rounds: rounds, EvtId: uuid.New()}
-		o.log.Info().Str("CarouselId", rd.CarId).Str("EventId", rd.EvtId.String()).Int("Rounds", rd.Rounds).Msg("Operator.Refill: About to write an event")
+		rd := TicketsData{CarId: c.CarId, Tickets: tickets, EvtId: uuid.New()}
+		o.log.Info().Str("CarouselId", rd.CarId).Str("EventId", rd.EvtId.String()).Int("Tickets", rd.Tickets).Msg("Operator.Refill: About to write an event")
 		err = o.evRepo.OperatorRefill(&rd)
 	}
 	return err
@@ -84,8 +84,8 @@ func (o *Operator) Play(c Carousel) error {
 			err = fmt.Errorf("Operator.Play: Carousel Status is '%s'", s.Status)
 			break
 		}
-		if s.Rounds == 0 {
-			err = fmt.Errorf("Operator.Play: Carousel has no Rounds (%d Rounds)", s.Rounds)
+		if s.Tickets == 0 {
+			err = fmt.Errorf("Operator.Play: Carousel has no Tickets (%d Tickets)", s.Tickets)
 			break
 		}
 
@@ -141,7 +141,7 @@ func (o *Operator) Tick(t *time.Ticker) {
 				monitorOffline = 0
 				o.log.Debug().Msg("Monitor Offline")
 				if err := o.monitorExpired(); err != nil {
-					o.log.Err(err).Msg("Operator.Tick: Execution monitorExpired failed")
+					// o.log.Err(err).Msg("Operator.Tick: Execution monitorExpired failed")
 				}
 			}
 			monitorPending += time.Since(ts)
@@ -149,7 +149,7 @@ func (o *Operator) Tick(t *time.Ticker) {
 				monitorPending = 0
 				o.log.Debug().Msg("Monitor Pending")
 				if err := o.monitorPending(); err != nil {
-					o.log.Err(err).Msg("Operator.Tick: Execution monitorPending failed")
+					// o.log.Err(err).Msg("Operator.Tick: Execution monitorPending failed")
 				}
 			}
 			monitorSnapshot += time.Since(ts)
@@ -158,7 +158,7 @@ func (o *Operator) Tick(t *time.Ticker) {
 				go func() {
 					o.log.Debug().Msg("Monitor Snaphsot")
 					if err := o.monitorSnapshot(); err != nil {
-						o.log.Err(err).Msg("Operator.Tick: Execution monitorSnapshot failed")
+						// o.log.Err(err).Msg("Operator.Tick: Execution monitorSnapshot failed")
 					}
 				}()
 			}
@@ -175,7 +175,7 @@ func (o *Operator) readSnapshot(c *Carousel) (*SnapshotData, error) {
 	snapshotEvent, err = o.evRepo.OperatorReadAsSnapshot(c.CarId)
 	if snapshot, err = o.snRepo.OperatorLoadSnapshot(c.CarId); err == nil && snapshot != nil && snapshotEvent != nil {
 		snapshot.Status = snapshotEvent.Status
-		snapshot.Rounds += snapshotEvent.Rounds
+		snapshot.Tickets += snapshotEvent.Tickets
 	} else {
 		snapshot = snapshotEvent
 	}
@@ -247,7 +247,7 @@ func (o *Operator) monitorSnapshot() error {
 				break
 			}
 			if snapshot, err = o.snRepo.OperatorLoadSnapshot(id); err != nil || snapshot == nil {
-				snapshot = &SnapshotData{CarId: snapshotEvent.CarId, Status: "", Rounds: 0}
+				snapshot = &SnapshotData{CarId: snapshotEvent.CarId, Status: "", Tickets: 0}
 			}
 
 			cdArrayLen := len(cdArray) - 1 // skip latest event, so len-1
@@ -263,7 +263,7 @@ func (o *Operator) monitorSnapshot() error {
 					o.log.Error().Str("CarouselId", id).Str("EventId", cd.EvtId.String()).Msg("Operator.monitorSnapshot: Can't remove a record")
 				}
 			}
-			snapshot.Rounds += snapshotEvent.Rounds
+			snapshot.Tickets += snapshotEvent.Tickets
 			snapshot.Status = snapshotEvent.Status
 
 			if err = o.snRepo.OperatorStoreSnapshot(snapshot); err != nil {

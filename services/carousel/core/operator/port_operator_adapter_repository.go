@@ -7,7 +7,7 @@ import (
 )
 
 type IPortOperatorAdapterEventRepository interface {
-	OperatorRefill(rd *RoundsData) error
+	OperatorRefill(rd *TicketsData) error
 	OperatorPlay(rd *PlayData) error
 
 	OperatorMark(s *StatusData) error

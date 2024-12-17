@@ -5,29 +5,70 @@
 
   <link rel="stylesheet" href="styles.css" />
   <script src="widget.js" defer></script>
+  <script src="widgetTiket.js" defer></script>
   <script>
     window.onload = function () {
 
 
-      window.setTimeout(() => {location.reload();}, 1000);
+      window.setTimeout(() => { location.reload(); }, 2000);
 
       var canvas = document.getElementById("myCanvas");
+      canvas.onmousemove = function (e) {
+        // if 
+        // important: correct mouse position:
+        // var rect = this.getBoundingClientRect(),
+        //   x = e.clientX - rect.left,
+        //   y = e.clientY - rect.top,
+        //   i = 0, r;
+
+
+        // while (r = rects[i++]) {
+        //   // add a single rect to path:
+        //   ctx.beginPath();
+        //   ctx.rect(r.x, r.y, r.w, r.h);
+
+        //   // check if we hover it, fill red, if not fill it blue
+        //   ctx.fillStyle = ctx.isPointInPath(x, y) ? "red" : "blue";
+        //   ctx.fill();
+        // }
+
+      };
 
       canvas.width = window.innerWidth;
       if (window.innerWidth > window.innerHeight) {
         canvas.width = 500;
       }
-      canvas.height = canvas.width;//window.innerWidth;
       console.log("inner: ", window.innerWidth)
-      //canvas.height = window.innerHeight / 2;
       var widget = new Widget(canvas, canvas.width / 20, canvas.width / 3);
-      widget.gauge(15, 17).lable("Rounds");
-
+      var wt = new WidgetTiket(canvas, 550);
+      wt.setTikets(2).setPrice(3).redraw();
 
 
       var btn = document.getElementById("PlayBtn");
       btn.addEventListener('click', function () {
         console.log("Clicked");
+      });
+      canvas.addEventListener('click', (event) => {
+        let x = event.pageX - (canvas.clientLeft + canvas.offsetLeft);
+        let y = event.pageY - (canvas.clientTop + canvas.offsetTop);
+        if (wt.inBounds(x, y) && !!wt.onClick) {
+          wt.onClick().clear().redraw()
+          window.setTimeout(() => { wt.onRelease().clear().redraw(); }, 200);
+        }
+      });
+      canvas.addEventListener('mousedown', (event) => {
+        let x = event.pageX - (canvas.clientLeft + canvas.offsetLeft);
+        let y = event.pageY - (canvas.clientTop + canvas.offsetTop);
+        if (wt.inBounds(x, y) && !!wt.onPress) {
+          // wt.onPress().clear().redraw()
+        }
+      });
+      canvas.addEventListener('mouseup', (event) => {
+        let x = event.pageX - (canvas.clientLeft + canvas.offsetLeft);
+        let y = event.pageY - (canvas.clientTop + canvas.offsetTop);
+        if (wt.inBounds(x, y) && !!wt.onPress) {
+          // wt.onRelease().clear().redraw()
+        }
       });
     }
   </script>

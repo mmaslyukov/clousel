@@ -20,9 +20,9 @@ func main() {
 	mqtt := broker.New(cfg.BrokerURL(), &log)
 	drv := repository.DriverSQLite.New(cfg.DatabseURL())
 	crRepo := repository.Carousel.New(drv, &log)
-	evRepo := repository.Event.New(drv, &log)
+	evRepo := repository.Event.New(drv, crRepo, &log)
 	snRepo := repository.Snaphsot.New(drv, &log)
-	man := manager.New(crRepo, snRepo, &log)
+	man := manager.New(crRepo, snRepo, evRepo, &log)
 	op := operator.New(evRepo, crRepo, snRepo, mqtt, cfg, &log)
 	router := rest.New(man, op, &log)
 	if err = mqtt.Connect(); err != nil {
@@ -36,6 +36,8 @@ func main() {
 	ticker := time.NewTicker(time.Second)
 	go op.Tick(ticker)
 
-	log.Info().Str("URL", cfg.Server()).Msg("Listening...")
-	http.ListenAndServe(cfg.Server(), router)
+	log.Info().Str("URL", cfg.ServerAddress()).Str("Key", cfg.ServerKeyPath()).Str("Cert", cfg.ServerCertPath()).Msg("Listening...")
+	http.ListenAndServe(cfg.ServerAddress(), router)
+	// err = http.ListenAndServeTLS(cfg.ServerAddress(), cfg.ServerCertPath(), cfg.ServerKeyPath(), router)
+	log.Err(err).Send()
 }

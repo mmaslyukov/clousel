@@ -11,3 +11,7 @@ type IPortManagerAdapterCarouselRepository interface {
 type IPortManagerAdapterSnapshotRepository interface {
 	ManagerStoreNewSnapshot(carId string) error
 }
+
+type IPortManagerAdapterEventRepository interface {
+	ManagerStoreNewEvent(carId string) error
+}

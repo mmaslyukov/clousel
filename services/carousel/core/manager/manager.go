@@ -9,11 +9,15 @@ import (
 type Manager struct {
 	crRepo IPortManagerAdapterCarouselRepository
 	snRepo IPortManagerAdapterSnapshotRepository
+	evRepo IPortManagerAdapterEventRepository
 	log    *zerolog.Logger
 }
 
-func New(crRepo IPortManagerAdapterCarouselRepository, snRepo IPortManagerAdapterSnapshotRepository, log *zerolog.Logger) *Manager {
-	return &Manager{crRepo: crRepo, snRepo: snRepo, log: log}
+func New(crRepo IPortManagerAdapterCarouselRepository,
+	snRepo IPortManagerAdapterSnapshotRepository,
+	evRepo IPortManagerAdapterEventRepository,
+	log *zerolog.Logger) *Manager {
+	return &Manager{crRepo: crRepo, snRepo: snRepo, evRepo: evRepo, log: log}
 }
 
 func (m *Manager) Register(c Carousel) error {
@@ -23,6 +27,9 @@ func (m *Manager) Register(c Carousel) error {
 			break
 		}
 		if err = m.snRepo.ManagerStoreNewSnapshot(c.CarId); err != nil {
+			break
+		}
+		if err = m.evRepo.ManagerStoreNewEvent(c.CarId); err != nil {
 			break
 		}
 	}
