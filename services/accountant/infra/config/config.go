@@ -6,10 +6,9 @@ import (
 )
 
 const (
-	domain     = "localhost"
-	wbhooktest = "109.110.19.178:4321"
-	server     = domain + ":4321"
-	carser     = domain + ":8081"
+	wbhook     = "109.110.19.178:4321"
+	server     = "localhost:4321"
+	carser     = "localhost:8081"
 	sqlitePath = "accountant.db"
 )
 
@@ -58,7 +57,7 @@ func (c *Config) ExternalServiceCarouselRefillUrl() string {
 }
 
 func (c *Config) WebhookUrl(id string) string {
-	return fmt.Sprintf("http://%s/webhook/%s", wbhooktest, id)
+	return fmt.Sprintf("http://%s/webhook/%s", wbhook, id)
 	// return fmt.Sprintf("http://%s/webhook/%s", server, id)
 }
 

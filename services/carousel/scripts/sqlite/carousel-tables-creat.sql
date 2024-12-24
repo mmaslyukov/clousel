@@ -2,7 +2,8 @@
 
 CREATE TABLE "carousel-record" (
     "CarouselId" string PRIMARY KEY,
-    "OwnerId" string NOT NULL
+    "OwnerId" string NOT NULL,
+    "Active" int
 );
 
 CREATE TABLE "carousel-event" (

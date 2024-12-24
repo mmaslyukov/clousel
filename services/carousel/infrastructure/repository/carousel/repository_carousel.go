@@ -26,7 +26,7 @@ func New(drv driver.IDBDriver, log *zerolog.Logger) *RepositoryCarousel {
 
 func (r *RepositoryCarousel) ManagerAddCarousel(c manager.Carousel) error {
 	var prompt string
-	prompt = fmt.Sprintf("insert into '%s' (CarouselId, OwnerId) values ('%s', '%s')", table_carousel, c.CarId, c.OwnId)
+	prompt = fmt.Sprintf("insert into '%s' (CarouselId, OwnerId, Active) values ('%s', '%s', 1)", table_carousel, c.CarId, c.OwnId)
 	return r.drv.Session(func(db *sql.DB) error {
 		var err error
 		if _, err = db.Exec(prompt); err == nil {
@@ -123,7 +123,7 @@ func (r *RepositoryCarousel) ReadCarouselsIds() ([]string, error) {
 			defer rows.Close()
 			for rows.Next() {
 				var c manager.Carousel
-				if err := rows.Scan(&c.CarId, &c.OwnId); err == nil {
+				if err := rows.Scan(&c.CarId, &c.OwnId, &c.Active); err == nil {
 					idArray = append(idArray, c.CarId)
 				} else {
 					r.log.Err(err).Msgf("Repository.Carousel.ReadCarouselsIds: Scan of '%s' failed", table_carousel)
@@ -151,7 +151,7 @@ func (r *RepositoryCarousel) ManagerReadOwnedCarousel(ownerId string) ([]manager
 			defer rows.Close()
 			for rows.Next() {
 				var c manager.Carousel
-				if err := rows.Scan(&c.CarId, &c.OwnId); err == nil {
+				if err := rows.Scan(&c.CarId, &c.OwnId, &c.Active); err == nil {
 					recordArray = append(recordArray, c)
 				} else {
 					r.log.Err(err).Str("OwnerId", ownerId).Msgf("Repository.Caorusel.ManagerReadOwnedCarousel: Scan of '%s' failed", table_carousel)
@@ -201,7 +201,7 @@ func (r *RepositoryCarousel) OperarotReadAllCarouselIds() ([]string, error) {
 			defer rows.Close()
 			for rows.Next() {
 				var c manager.Carousel
-				if err := rows.Scan(&c.CarId, &c.OwnId); err == nil {
+				if err := rows.Scan(&c.CarId, &c.OwnId, &c.Active); err == nil {
 					ids = append(ids, c.CarId)
 				} else {
 					r.log.Err(err).Msgf("Repository.Caorusel.OperarotReadAllCarouselIds: Scan of '%s' failed", table_carousel)

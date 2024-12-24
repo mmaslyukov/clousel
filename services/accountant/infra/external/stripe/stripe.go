@@ -62,7 +62,6 @@ func (s *StripeGateway) GenCheckoutSessionUrl(skey string, priceId string, url s
 	var ierr errs.IError
 
 	sc := session.Client{B: stripe.GetBackend(stripe.APIBackend), Key: skey}
-
 	params := &stripe.CheckoutSessionParams{
 		SuccessURL: &url.Success, //stripe.String(domainURL + "/success.html?session_id={CHECKOUT_SESSION_ID}"),
 		CancelURL:  &url.Cancel,  //stripe.String(domainURL + "/canceled.html"),
@@ -79,7 +78,6 @@ func (s *StripeGateway) GenCheckoutSessionUrl(skey string, priceId string, url s
 	if err != nil {
 		ierr = errs.New(errs.ECStripeCheckout).Msgf("Error while creating session %v", err.Error())
 	}
-	// ss.PaymentIntent.
 	return &CheckoutSessionWrapper{s: ss}, ierr
 }
 
@@ -104,7 +102,7 @@ func (s *StripeGateway) ReadPriceDetails(skey string, priceId string) (store.Pri
 	return pt, ierr
 }
 
-func (s *StripeGateway) RegisterWebhook(url string, skey string, whkeyId *string) (string, string, erro.IError) {
+func (s *StripeGateway) WebhookRegister(url string, skey string) (string, string, erro.IError) {
 	var ierr erro.IError
 	var whkey, whid string
 	wc := webhookendpoint.Client{B: stripe.GetBackend(stripe.APIBackend), Key: skey}
@@ -117,21 +115,63 @@ func (s *StripeGateway) RegisterWebhook(url string, skey string, whkeyId *string
 		URL: stripe.String(url),
 	}
 
-	if whkeyId == nil {
-		if result, err := wc.New(params); err == nil {
-			whkey = result.Secret
-			whid = result.ID
-		} else {
-			ierr = erro.New(erro.ECStripeRegWebhook).Msgf("Error while registering a webhook url: %v", err.Error())
-		}
+	if result, err := wc.New(params); err == nil {
+		whkey = result.Secret
+		whid = result.ID
 	} else {
-		if result, err := wc.Update(*whkeyId, params); err == nil {
-			whkey = result.Secret
-			whid = *whkeyId
-		} else {
-			ierr = erro.New(erro.ECStripeRegWebhook).Msgf("Error while updating a webhook url: %v", err.Error())
-		}
+		ierr = erro.New(erro.ECStripeRegWebhook).Msgf("Error while registering a webhook url: %v", err.Error())
 	}
 
 	return whid, whkey, ierr
 }
+
+func (s *StripeGateway) WebhookUpdateUrl(url string, skey string, whkeyId string) erro.IError {
+	var ierr erro.IError
+	wc := webhookendpoint.Client{B: stripe.GetBackend(stripe.APIBackend), Key: skey}
+	params := &stripe.WebhookEndpointParams{
+		EnabledEvents: []*string{
+			// stripe.String("charge.succeeded"),
+			// stripe.String("charge.failed"),
+			stripe.String("checkout.session.completed"),
+		},
+		URL: stripe.String(url),
+	}
+
+	if _, err := wc.Update(whkeyId, params); err != nil {
+		ierr = erro.New(erro.ECStripeRegWebhook).Msgf("Error while updating a webhook url: %v", err.Error())
+	}
+
+	return ierr
+}
+
+// func (s *StripeGateway) RegisterWebhook(url string, skey string, whkeyId *string) (string, string, erro.IError) {
+// 	var ierr erro.IError
+// 	var whkey, whid string
+// 	wc := webhookendpoint.Client{B: stripe.GetBackend(stripe.APIBackend), Key: skey}
+// 	params := &stripe.WebhookEndpointParams{
+// 		EnabledEvents: []*string{
+// 			// stripe.String("charge.succeeded"),
+// 			// stripe.String("charge.failed"),
+// 			stripe.String("checkout.session.completed"),
+// 		},
+// 		URL: stripe.String(url),
+// 	}
+
+// 	if whkeyId == nil {
+// 		if result, err := wc.New(params); err == nil {
+// 			whkey = result.Secret
+// 			whid = result.ID
+// 		} else {
+// 			ierr = erro.New(erro.ECStripeRegWebhook).Msgf("Error while registering a webhook url: %v", err.Error())
+// 		}
+// 	} else {
+// 		if result, err := wc.Update(*whkeyId, params); err == nil {
+// 			whkey = result.Secret
+// 			whid = *whkeyId
+// 		} else {
+// 			ierr = erro.New(erro.ECStripeRegWebhook).Msgf("Error while updating a webhook url: %v", err.Error())
+// 		}
+// 	}
+
+// 	return whid, whkey, ierr
+// }

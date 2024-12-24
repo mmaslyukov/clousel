@@ -193,7 +193,7 @@ func (od *OwnerDomain) registerWebhook(ownerId Owner, skey string) IError {
 		url := od.cfg.WebhookUrl(ownerId.String())
 		od.log.Info().Msgf("Owner.registerWebhook: Assign webhook url to '%s'", url)
 		var whid, whkey string
-		if whid, whkey, ierr = od.stripe.RegisterWebhook(url, skey, nil); ierr != nil {
+		if whid, whkey, ierr = od.stripe.WebhookRegister(url, skey); ierr != nil {
 			ierr = erro.New(erro.ECStripeRegWebhook).
 				Msg("Owner.registerWebhook: Fail to register webhook").
 				Err(ierr)
@@ -222,7 +222,7 @@ func (od *OwnerDomain) RefreshWebhook(token Token) IError {
 		var entry OwnerEntry
 		if entry, ierr = od.profRepo.OwnerReadEntryByOwner(td.ownerId.String()); ierr != nil {
 			ierr = erro.New(erro.ECGeneralFailure).
-				Msg("Owner.RefreshWebhook: Fail to read owner entry").
+				Msgf("Owner.RefreshWebhook: Fail to read owner entry of owner %s", td.ownerId.String()).
 				Err(ierr)
 			break
 		}
@@ -232,20 +232,34 @@ func (od *OwnerDomain) RefreshWebhook(token Token) IError {
 				Err(ierr)
 			break
 		}
+
+		// WebhookRegister(url string, skey string) (string, string, IError)
+		// WebhookUpdateUrl(url string, skey string, whkeyId string) IError
+
 		url := od.cfg.WebhookUrl(td.ownerId.String())
-		var whid, whkey string
-		if whid, whkey, ierr = od.stripe.RegisterWebhook(url, *entry.SecretKey, entry.WebhookId); ierr != nil {
-			ierr = erro.New(erro.ECUserKeyNil).
-				Msg("Owner.RefreshWebhook: Fail to refresh webhook key").
-				Err(ierr)
-			break
+		if entry.WebhookId == nil {
+			var whid, whkey string
+			if whid, whkey, ierr = od.stripe.WebhookRegister(url, *entry.SecretKey); ierr != nil {
+				ierr = erro.New(erro.ECUserKeyNil).
+					Msgf("Owner.RefreshWebhook: Fail to register new webhook for owner %s", td.ownerId.String()).
+					Err(ierr)
+				break
+			}
+			if ierr = od.profRepo.OwnerAssignWebhook(td.ownerId, whid, whkey); ierr != nil {
+				ierr = erro.New(erro.ECStripeRegWebhook).
+					Msgf("Owner.RefreshWebhook: Fail to assign webhook for owner %s", td.ownerId.String()).
+					Err(ierr)
+				break
+			}
+		} else {
+			if ierr = od.stripe.WebhookUpdateUrl(url, *entry.SecretKey, *entry.WebhookId); ierr != nil {
+				ierr = erro.New(erro.ECUserKeyNil).
+					Msgf("Owner.RefreshWebhook: Fail to refresh webhook key for owner %s", td.ownerId.String()).
+					Err(ierr)
+				break
+			}
 		}
-		if ierr = od.profRepo.OwnerAssignWebhook(td.ownerId, whid, whkey); ierr != nil {
-			ierr = erro.New(erro.ECStripeRegWebhook).
-				Msg("Owner.RefreshWebhook: Fail to assign webhook").
-				Err(ierr)
-			break
-		}
+
 		od.log.Info().Msgf("Owner.RefreshWebhook: Owner %s has refreshed Webhook url to '%s'", td.ownerId.String(), url)
 	}
 	return ierr
