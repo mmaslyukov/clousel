@@ -4,7 +4,8 @@
     <HeaderToolbar @po-changed="onPoChanged" v-bind="tickets" />
     <QRScannerNew v-show="scannerView.enabled" v-bind="scannerView" @qr-decoded="onQrDecoded" />
     <PaymentOptions v-show="poShown" v-bind="priceOptions" @buy-clicked="onBuyClicked" />
-    <PlayControl v-show="scannerFeedback.detected" v-bind="play" @play-clicked="onPlayClicked" />
+    <PlayControl  v-bind="play" @play-clicked="onPlayClicked" />
+    <!-- <PlayControl v-show="scannerFeedback.detected" v-bind="play" @play-clicked="onPlayClicked" /> -->
     <FooterToolbar @scanner-enabled="onScannedEnabled" v-bind="scannerFeedback" />
   </div>
 </template>
@@ -106,7 +107,7 @@ function onPlayClicked() {
 
 function onBuyClicked(selectedPriceOption) {
   tickets.balance = selectedPriceOption.tickets
-    updatePlayEnabledMarker()
+  updatePlayEnabledMarker()
 
 }
 
@@ -119,7 +120,7 @@ function onQrDecoded(txt, result) {
 
   play.fee = 1
 
-    updatePlayEnabledMarker()
+  updatePlayEnabledMarker()
 }
 function onScannedEnabled(value) {
   scannerView.enabled = value
@@ -153,7 +154,7 @@ body {
   padding: 0 !important;
   margin: 0 !important;
   height: 100%;
-  overflow-y: hidden;
+  overflow: clip;
   background-color: beige;
 }
 

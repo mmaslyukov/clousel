@@ -1,11 +1,11 @@
 <template>
-    <div style="height: 100%; background-color: beige;">
-        <div style=" align-items: center; justify-content: center; vertical-align: middle; display: flex; flex-direction: column; margin:auto; padding:0; padding-top: 80%;">
+    <div style="height: inherit; background-color: beige; display: flex; flex-direction: column;">
+        <div style=" align-items: center; justify-content: center; vertical-align: middle; display: flex; flex-direction: column; margin:auto; margin-bottom: 0;  padding:0;">
             <span>
                 <p class="pc-font" style="font-size: 14pt; text-align: center; margin:0; margin-bottom: 10px;">Play fee:</p>
             </span>
             <span style="display: flex; flex-direction: row; ">
-                <p class="pc-font pc-bold" style="font-size: 20pt; text-align: right; margin:0; margin-right: 5px; " >{{ props.fee }}</p>
+                <p class="pc-font pc-bold" style="font-size: 22pt; text-align: right; margin:0; margin-right: 5px; " >{{ props.fee }}</p>
                 <!-- <p class="pc-font" >{{ props.fee }}</p> -->
                 <p class="pc-font pc-bold" style="font-size: 22pt; margin:0;">Tickets</p>
             </span>
@@ -13,7 +13,7 @@
                 <p v-show="!props.enable" class="pc-font" style="font-size: 10pt; color: #c14b1dff; margin:0; margin-top: 10px;" >Not enought tickets</p>
             </span>
         </div>
-        <div style="display: flex; flex-direction: row;align-items: center; justify-content: center; margin:auto">
+        <div style="display: flex; flex-direction: row;align-items: center; justify-content: center; margin:auto; margin-top: 0; " >
             <button id="pc-play" class="pc-font pc-bold pc-button-play-off" type="button" disabled @click="onPlayClick" >PLAY</button>
         </div>
     </div>

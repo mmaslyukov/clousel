@@ -1,15 +1,16 @@
 <template>
     <div id="qr-reader-container">
-        <p style="color: white; position: absolute; left: 45%; top:45%">Loading...</p>
-        <!-- <p style="color: white; position: absolute;  top:55%" id="qr-result"></p> -->
+        <!-- <p  v-show="loading" style=" color: white; text-align: center;  margin:auto; padding:auto; ">Loading...</p> -->
+        <p  v-show="loading" style=" color: white; position: absolute; top:45%; left: 45%;" >Loading...</p>
         <div id="qr-reader"></div>
     </div>
 </template>
 <script setup>
-import { onMounted, watch, defineProps, defineEmits } from 'vue'
+import { onMounted, watch, defineProps, defineEmits, ref } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
 var scanner = null
 var scannerRunning = false
+const loading = ref(false)
 
 const props = defineProps({
     enabled: Boolean,
@@ -33,6 +34,7 @@ watch(props, async () => {
 
 
 function callbackQRReader(mutationsList) {
+    loading.value = false
     mutationsList.forEach((mutation) => {
         if (mutation.type === 'childList') {
             let overlayElement = document.getElementById("qr-shaded-region");
@@ -45,6 +47,7 @@ function callbackQRReader(mutationsList) {
     });
 }
 async function startScaner() {
+    loading.value = true
     console.log("Starting QR Scanner")
     const qrCodeSuccessCallback = (decodedText, decodedResult) => {
         emit("qrDecoded", decodedText, decodedResult)
@@ -54,12 +57,13 @@ async function startScaner() {
 
         /* handle success */
     };
-    const config = { fps: 10, qrbox: { width: 200, height: 220 }, aspectRatio: 1 };
+    const config = { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1 };
 
     // html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
 
     // If you want to prefer front camera
-    await scanner.start({ facingMode: "user" }, config, qrCodeSuccessCallback, qrCodeErrorCallback)
+    // await scanner.start({ facingMode: "user" }, config, qrCodeSuccessCallback, qrCodeErrorCallback)
+    await scanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, qrCodeErrorCallback)
     const observerConfig = { childList: true, subtree: true };
     const observerQRReader = new MutationObserver(callbackQRReader);
     let elReader = document.getElementById("qr-reader")
@@ -69,6 +73,7 @@ async function startScaner() {
 async function stopScaner() {
     console.log("Stopping QR Scanner")
     if (scanner != null && scannerRunning == true) {
+        loading.value = false
         scannerRunning = false
         scanner.pause()
         await scanner.stop()
@@ -80,20 +85,45 @@ async function stopScaner() {
 
 
 <style>
-#reader {
+video {
+    height: 400px;
+}
+#qr-reader {
+    min-width: 200px;
+    max-width: 500px;
+    height: 400px;
+    width: 400px;
+    /*
+    */
     margin: auto;
-    width: 90%;
+    padding: auto;
+    top:10%;
+    bottom: 10%;
+    
+    
+    /*
+    display: flex;
+    vertical-align: middle;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    */
 }
 
 #qr-reader-container {
-    padding-top: 60%;
     margin: auto;
-    height: 70%;
     background-color: #404040ff;
+    padding-top: 110px;
+    padding-bottom: 110px;
+    height: 100%;
     /*
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding-bottom: 10%;
     margin-bottom: 0;
+    vertical-align: middle;
     */
-    align-items: center;
 }
 </style>

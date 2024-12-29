@@ -55,12 +55,13 @@ function registerClickers() {
 #footer {
     position: absolute;
     margin-top: auto;
-    height: 100px;
+    height: 70px;
     bottom: 0;
     width: 100%;
     background-color: #ffcc00ff;
     box-shadow: 0px -5px 10px #404040ff;
     /*
+    position: absolute;
     */
 }
 
@@ -74,8 +75,8 @@ function registerClickers() {
 }
 
 #footer-scan {
-    width: 70px;
-    height: 70px;
+    width: 50px;
+    height: 50px;
     margin: auto;
 }
 

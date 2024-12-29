@@ -1,5 +1,5 @@
 <template>
-    <div id="sign">
+    <div id="sign" style="display: flex; flex-direction: column; vertical-align: middle; margin: auto; padding: auto;">
         <div id="sign-logo-container">
             <img id="sign-logo" src="../assets/vesers.png"/>
             <!-- <p id="sign-logo">LOGO</p> -->
@@ -72,9 +72,11 @@ function regModeHander() {
 
 #sign-logo-container {
     position: relative;
-    margin-top: 25%;
-    margin-left: 25%;
-    margin-right: 25%;
+    display: flex;
+    flex-direction: column;
+    vertical-align: middle;
+    margin: auto;
+    margin-top: 100px;
     margin-bottom: 50px;
 }
 

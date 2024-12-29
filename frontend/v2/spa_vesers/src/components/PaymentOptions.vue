@@ -7,7 +7,7 @@
                 <label :for="'radioApple'+i" class="po-prod-p" @click="updateInfoData(item.tickets, item.price, item.prodId)">
                     <span style="display: block; ">
                         <div style="display: flex; flex-direction: row; height: 30px;">
-                            <p id="po-prod-tn" style="margin:0; margin-top: 10px; margin-left: 10px; text-align: left; "
+                            <p id="po-prod-tn" style="margin:0; margin-top: 10px; margin-left: 6px; width:20px; text-align: right; "
                                 class="po-font">{{item.tickets}}</p>
                             <p style="margin-top: 10px; margin-left: 5px;" class="po-font">Tickets</p>
                         </div>
@@ -36,7 +36,7 @@
                     <p class="po-font ppt-save">€ Saved</p>
                 </div>
             </div>
-            <div style="width: 35%;display: flex; flex-direction: row;justify-content: center; align-items: center">
+            <div style="display: flex; flex-direction: row;justify-content: center; align-items: center">
                 <button id="po-buy" class="po-font" type="button" @click="emit('buyClicked', selectedPriceOption)">BUY</button>
             </div>
         </div>
@@ -95,9 +95,9 @@ function updateInfoData(tickets, price, prodId) {
     border-color: #404040ff;
     box-shadow: 0px 5px 10px #404040ff;
     position: absolute;
-    top: 100px;
+    top: 70px;
     width: 100%;
-    height: 25%;
+    height: 220px;
     background-color: #ffcc00ff;
 
 }
@@ -164,16 +164,16 @@ background-color: #ffeb99ff;
 }
 */
 #po-info {
-    height: 35%;
-    width: 35%;
+    /*
+    */
+    height: 75px;
+    width: 130px;
     margin: auto;
     margin-top: 15px;
     margin-left: 20px;
     margin-bottom: 10px;
     border-style: solid;
     border-color: #404040ff;
-    /*
-*/
     border-radius: 15px;
 }
 

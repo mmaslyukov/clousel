@@ -68,7 +68,7 @@ canvas {
     position: absolute;
     width: 100%;
     margin-top: 0px;
-    height: 100px;
+    height: 70px;
     background-color: #ffcc00ff;
     box-shadow: 0px 5px 10px #404040ff;
 
@@ -89,8 +89,8 @@ border-color: red;
 
 #header_icon {
     margin: auto;
-    height: 70px;
-    width: 70px;
+    height: 50px;
+    width: 50px;
     margin-left: 10px;
 
 }
@@ -116,11 +116,11 @@ border-color: red;
     margin-right: 5px;
 }
 #header_balance {
-    padding: 5px;
+    padding: 3px;
     margin: auto;
-    margin-top: 10px;
     margin-left: 0;
     /*
+    margin-top: 10px;
     border-style: solid;
     display: flex;
     flex-direction: column;
@@ -133,7 +133,7 @@ border-color: red;
     padding: 0;
     font-family:  sans-serif;
     font-weight: bold;
-    font-size: 24px;
+    font-size: 22px;
     color: #404040ff;
 }
 
@@ -143,13 +143,13 @@ border-color: red;
     display: flex;
     font-family:  sans-serif;
     font-weight: bold;
-    font-size: 22px;
+    font-size: 18px;
 }
 
 #header_balance_tickets_num {
     margin: 0;
     padding: 5px;
-    width: 25px;
+    width: 20px;
     color: white;
     text-align: center;
     background-color: #404040ff;
@@ -158,7 +158,6 @@ border-color: red;
 #header_balance_tickets_lable {
     margin: 0;
     padding: 5px;
-    margin-left: auto;
     color: #404040ff;
 }
 </style>
