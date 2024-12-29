@@ -143,40 +143,25 @@ export class CanvasButtonScan extends CanvasButton {
         bracked(this, 10, -1)
         bracked(this, 46, 1)
 
-        function line(b, shift, len) {
-            b.ctx.beginPath();
-            x = shift
-            y = b.ch*0.25 + y*(1-len)
-            // y = y + 1 - y*len
-            b.ctx.moveTo(x,y)
-            b.ctx.lineTo(x, y + b.ch*0.5*len);
-            b.ctx.lineWidth = 5;
-            b.ctx.stroke();
-            b.ctx.closePath();
-        }
-        line(this, this.cw/2, 1)
-        line(this, this.cw/3, 0.8)
-        line(this, this.cw*2/3, 0.8)
-        // this.ctx.beginPath();
-        // x = this.cw/2
-        // y = this.ch/5
-        // this.ctx.moveTo(x,y)
-        // this.ctx.lineTo(x, y + this.h*0.7);
-        // this.ctx.lineWidth = 5;
-        // this.ctx.stroke();
-        // this.ctx.closePath();
-
-
-
-        // this.ctx.beginPath();
-        // x = this.cw/10 + 10
-        // y = this.ch/10
-        // this.ctx.moveTo(x,y)
-        // this.ctx.lineTo(x -=10, y);
-        // x = this.cw/10
-        // y = this.ch/10
-        // this.ctx.lineTo(x, y += this.h - this.ch/10);
-        // this.ctx.lineTo(x +=11, y);
-        // this.ctx.stroke();
+        // function line(b, shift, len) {
+        //     b.ctx.beginPath();
+        //     x = shift
+        //     y = b.ch*0.25 + y*(1-len)
+        //     // y = y + 1 - y*len
+        //     b.ctx.moveTo(x,y)
+        //     b.ctx.lineTo(x, y + b.ch*0.5*len);
+        //     b.ctx.lineWidth = 5;
+        //     b.ctx.stroke();
+        //     b.ctx.closePath();
+        // }
+        // line(this, this.cw/2, 1)
+        // line(this, this.cw/3, 0.8)
+        // line(this, this.cw*2/3, 0.8)
+        this.ctx.fillStyle = this.cfg.str();
+        this.ctx.textAlign = "center";
+        this.ctx.font =  "12pt  Verdana";
+        this.ctx.fillText("SCAN", this.cw*0.48, this.ch*0.38);
+        this.ctx.font =  "bold 18pt  Verdana";
+        this.ctx.fillText("QR", this.cw*0.48, this.ch*0.75);
     }
 }

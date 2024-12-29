@@ -5,26 +5,26 @@
             <!-- <p id="sign-logo">LOGO</p> -->
         </div>
         <div id="signin-container">
-            <div id="signin-container-username">
+            <div id="signin-container-username" class="user-input-container">
                 <p class="lable">Username</p>
                 <input class="field" type="text" id="username-value" name="username">
             </div>
-            <div id="signin-container-email" v-show="signData.modeSignup">
+            <div id="signin-container-email" v-show="signData.modeSignup" class="user-input-container">
                 <p class="lable">Email</p>
                 <input class="field" type="email" id="email-value" name="email">
             </div>
-            <div id="signin-container-password">
+            <div id="signin-container-password" class="user-input-container">
                 <p class="lable">Password</p>
                 <input class="field" type="password" id="password-value" name="password">
             </div>
-            <div id="signin-container-password-repeat" v-show="signData.modeSignup">
+            <div id="signin-container-password-repeat" v-show="signData.modeSignup" class="user-input-container">
                 <p class="lable">Repeat Password</p>
                 <input class="field" type="password" id="password-value-repeat" name="password">
             </div>
             <div id="signin-button-container">
-                <button id="login-button" class="sign-button" v-show="!signData.modeSignup" @click="$emit('loginClicked')">LOGIN</button>
-                <button id="register-lable-clickable" v-show="!signData.modeSignup" @click="regModeHander">Registeration</button>
-                <button id="register-button" class="sign-button" v-show="signData.modeSignup" @click="$emit('registerClicked')">REGISTER</button>
+                <button id="login-button" class="sign-button" v-show="!signData.modeSignup" @click="$emit('loginClicked')">Login</button>
+                <button id="register-lable-clickable"  v-show="!signData.modeSignup" @click="regModeHander">Registeration</button>
+                <button id="register-button" class="sign-button" v-show="signData.modeSignup" @click="$emit('registerClicked')">Register</button>
             </div>
             <!-- <div id="signin-button-container">
             </div> -->
@@ -67,7 +67,8 @@ function regModeHander() {
     position: absolute;
     height: 100%;
     width: 100%;
-    background-color: white;
+    background-color: beige;
+    overflow-y: auto;
 }
 
 #sign-logo-container {
@@ -76,8 +77,8 @@ function regModeHander() {
     flex-direction: column;
     vertical-align: middle;
     margin: auto;
-    margin-top: 100px;
-    margin-bottom: 50px;
+    margin-top: 70px;
+    margin-bottom: 30px;
 }
 
 #sign-logo {
@@ -90,8 +91,9 @@ function regModeHander() {
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 100%;
     align-items: center;
+    justify-items: center;
+    height: 100%;
 }
 /*
 #signin-container-username {
@@ -103,18 +105,20 @@ function regModeHander() {
     margin-bottom: 10px;
     margin-right: width/2;
 }
-*/
 #signin-container-username,
 #signin_container_password_repeat,
 #signin_container_password,
-#signin_container_email {
+#signin_container_email
+*/
+.user-input-container
+{
     float: right;
     position: relative;
     display: flex;
     flex-direction: column;
     margin: auto;
     margin-top: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 0px;
 /*
     align-items: center;
     justify-content: center;
@@ -126,6 +130,10 @@ function regModeHander() {
     height: 30px;
     border-radius: 20px;
     padding-left: 15px;
+    background-color: cornsilk;
+    font-family: sans-serif;
+    color: #404040ff;
+    font-size: 12pt;
 }
 
 .lable {
@@ -136,11 +144,15 @@ function regModeHander() {
 #signin-button-container {
     margin: auto;
     display: flex;
-    margin-top: 10%;
+    margin-top: 40px;
+    margin-bottom: 200px;
+    display: flex;
     flex-direction: column;
+    align-items: center;
 }
 #register-lable-clickable {
     margin-top: 10px;
+    text-align: center;
     text-decoration: underline;
     border: none;
     background: transparent;
@@ -149,12 +161,17 @@ function regModeHander() {
 
 .sign-button {
     border: none;
-    min-width: 120px;
-    height: 50px;
-    font-weight: bold;
-    font-size: 20pt;
+    height: 35px;
+    width: fit-content;
+    padding-left: 20px;
+    padding-right: 20px;
+    font-size: 12pt;
     border-radius: 10px;
-    background-color: #404040ff;
-    color: #ffeb99ff;
+    color: #404040ff;
+    border-style: solid;
+    border-width: 1px;
+    background-color: #ffeb99ff;
 }
+
+
 </style>

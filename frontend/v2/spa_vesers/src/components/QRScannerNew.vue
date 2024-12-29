@@ -97,7 +97,7 @@ video {
     */
     margin: auto;
     padding: auto;
-    top:10%;
+    top:20px;
     bottom: 10%;
     
     

@@ -3,8 +3,8 @@
         <div id="po-options">
             <div style="margin-left: 10px;"></div>
             <div v-for="(item, i)  in props.details" :key=i style="display:flex">
-                <input type="radio" :id="'radioApple'+i" name="radioFruit" :value="item.prodId">
-                <label :for="'radioApple'+i" class="po-prod-p" @click="updateInfoData(item.tickets, item.price, item.prodId)">
+                <input type="radio" :id="'price-option-'+i" name="radioFruit" :value="item.prodId">
+                <label :for="'price-option-'+i" class="po-prod-p" @click="updateInfoData(item.tickets, item.price, item.prodId)">
                     <span style="display: block; ">
                         <div style="display: flex; flex-direction: row; height: 30px;">
                             <p id="po-prod-tn" style="margin:0; margin-top: 10px; margin-left: 6px; width:20px; text-align: right; "
@@ -26,13 +26,13 @@
         </div>
         <div style="display: flex; flex-direction: row;">
             <div id="po-info">
-                <p id="po-info-ppt-lable" class="po-font">Price per 1 ticket:</p>
+                <!-- <p id="po-info-ppt-label" class="po-font">Price per 1 ticket:</p> -->
+                <p class="po-font pt-value" >{{info.price.toFixed(2)}}€</p>
+                <snap style="display: flex; flex-direction: row; ">
+                    <p id="po-info-ppt-label" class="po-font">{{info.ppt}}€ per ticket</p>
+                </snap>
                 <div style="display: flex; flex-direction: row; ">
-                    <p id="po-info-ppt-value" class="po-font ppt-value">{{infoPricePerTicket}}</p>
-                    <p class="po-font ppt-value">€</p>
-                </div>
-                <div style="display: flex; flex-direction: row; ">
-                    <p id="po-info-ppt-save" class="po-font ppt-save">{{infoSaved}}</p>
+                    <p id="po-info-ppt-save" class="po-font ppt-save">{{info.saved}}</p>
                     <p class="po-font ppt-save">€ Saved</p>
                 </div>
             </div>
@@ -44,19 +44,30 @@
 </template>
 
 <script setup>
-import { onMounted, defineProps, defineEmits, ref } from 'vue'
+import { onMounted, defineProps, defineEmits, reactive } from 'vue'
 
 const props = defineProps(["details"])
 const emit = defineEmits(["buyClicked"])
-const infoPricePerTicket = ref(0)
-const infoSaved = ref(0)
+const info = reactive({
+    price: 0,
+    ppt: 0,
+    saved: 0
+
+})
+// const selectedPrice = ref(0)
+// const infoPricePerTicket = ref(0)
+// const infoSaved = ref(0)
 var selectedPriceOption={
     price:Number,
     tickets: Number,
     priodId:String,
 }
 onMounted(() => {
-
+    let po = document.getElementById("price-option-0");
+    if (po != null) {
+        po.checked = true
+        updateInfoData(props.details[0].tickets, props.details[0].price, props.details[0].prodId)
+    }
 })
 function calculatePricePerTicket(tickets, price) {
     if (tickets == 0) {
@@ -65,13 +76,14 @@ function calculatePricePerTicket(tickets, price) {
     return (price / tickets).toFixed(2)
 }
 function updateInfoData(tickets, price, prodId) {
+    info.price = price
     let maxPricePerTicket = 0    
     for (let o of props.details) {
         let cp = calculatePricePerTicket(o.tickets, o.price)
         maxPricePerTicket = cp > maxPricePerTicket ? cp : maxPricePerTicket
     }
-    infoPricePerTicket.value = calculatePricePerTicket(tickets, price)
-    infoSaved.value = (maxPricePerTicket * tickets - infoPricePerTicket.value * tickets).toFixed(2)
+    info.ppt = calculatePricePerTicket(tickets, price)
+    info.saved = (maxPricePerTicket * tickets - info.ppt * tickets).toFixed(2)
     selectedPriceOption.price = price
     selectedPriceOption.tickets = tickets
     selectedPriceOption.prodId = prodId
@@ -175,22 +187,32 @@ background-color: #ffeb99ff;
     border-style: solid;
     border-color: #404040ff;
     border-radius: 15px;
+    padding: 5px;
 }
 
-#po-info-ppt-lable {
+#po-info-ppt-label {
     margin: 0px;
-    margin-top: 8px;
+    margin-top: 0px;
     margin-left: 15px;
     font-size: 10pt;
 }
-
+/*
 .ppt-value {
     margin: 0;
     margin-top: 0px;
     font-size: 16pt;
     font-weight: bold;
 }
+*/
 
+.pt-value {
+    margin: 0;
+    margin-top: 5px;
+    margin-bottom: 3px;
+    padding-left: 15px;
+    font-size: 20pt;
+    font-weight: bold;
+}
 #po-info-ppt-value {
     margin-left: 15px;
 }

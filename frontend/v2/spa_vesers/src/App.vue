@@ -3,9 +3,10 @@
   <div v-show="!signRequired" style="height: 100%;">
     <HeaderToolbar @po-changed="onPoChanged" v-bind="tickets" />
     <QRScannerNew v-show="scannerView.enabled" v-bind="scannerView" @qr-decoded="onQrDecoded" />
+    <HelpScreen v-show="!scannerFeedback.detected"/>
     <PaymentOptions v-show="poShown" v-bind="priceOptions" @buy-clicked="onBuyClicked" />
-    <PlayControl  v-bind="play" @play-clicked="onPlayClicked" />
-    <!-- <PlayControl v-show="scannerFeedback.detected" v-bind="play" @play-clicked="onPlayClicked" /> -->
+    <!-- <PlayControl v-bind="play" @play-clicked="onPlayClicked" /> -->
+    <PlayControl v-show="scannerFeedback.detected" v-bind="play" @play-clicked="onPlayClicked" />
     <FooterToolbar @scanner-enabled="onScannedEnabled" v-bind="scannerFeedback" />
   </div>
 </template>
@@ -17,6 +18,7 @@ import SignPage from './components/SignPage.vue'
 import QRScannerNew from './components/QRScannerNew.vue'
 import PaymentOptions from './components/PaymentOptions.vue'
 import PlayControl from './components/PlayControl.vue'
+import HelpScreen from './components/HelpScreen.vue'
 
 export default {
   name: 'App',
@@ -24,6 +26,7 @@ export default {
     SignPage,
     HeaderToolbar,
     PaymentOptions,
+    HelpScreen,
     PlayControl,
     QRScannerNew,
     FooterToolbar
@@ -46,10 +49,12 @@ const scannerView = reactive({
   counter: 0
 })
 const tickets = reactive({
-  balance: 0
+  balance: 0,
+  closeOptions: 0
 })
 const play = reactive({
-  fee: 0,
+  cost: 0,
+  balance: 0,
   enable: false
 })
 const priceOptions = reactive({
@@ -94,19 +99,23 @@ onMounted(() => {
 })
 
 function updatePlayEnabledMarker() {
-  play.enable = tickets.balance >= play.fee
+  play.enable = tickets.balance >= play.cost
 
 }
 
 function onPlayClicked() {
-  if (tickets.balance >= play.fee) {
-    tickets.balance -= play.fee
+  if (tickets.balance >= play.cost) {
+    tickets.balance -= play.cost
+    play.balance = tickets.balance
     updatePlayEnabledMarker()
   }
 }
 
 function onBuyClicked(selectedPriceOption) {
+  poShown.value = false
+  play.balance = selectedPriceOption.tickets
   tickets.balance = selectedPriceOption.tickets
+  tickets.closeOptions++
   updatePlayEnabledMarker()
 
 }
@@ -118,7 +127,7 @@ function onQrDecoded(txt, result) {
   scannerView.enabled = false
   scannerView.counter++;
 
-  play.fee = 1
+  play.cost = 1
 
   updatePlayEnabledMarker()
 }
@@ -156,6 +165,8 @@ body {
   height: 100%;
   overflow: clip;
   background-color: beige;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  color: #404040ff;
 }
 
 /*
