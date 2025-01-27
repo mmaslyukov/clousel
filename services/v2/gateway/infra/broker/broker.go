@@ -24,18 +24,18 @@ type Broker struct {
 	listeners   map[string]dispatcher.IDispatcherMqttController
 	sequenceTx  map[uuid.UUID]int
 	sequenceRx  map[uuid.UUID]int
-	url         string
+	cfg         IBrokerConfig
 	client      paho.Client
 	log         *zerolog.Logger
 }
 
-func New(url string, log *zerolog.Logger) *Broker {
+func New(cfg IBrokerConfig, log *zerolog.Logger) *Broker {
 	b := &Broker{
 		subscribers: make(map[string]byte),
 		listeners:   make(map[string]dispatcher.IDispatcherMqttController),
 		sequenceTx:  make(map[uuid.UUID]int),
 		sequenceRx:  make(map[uuid.UUID]int),
-		url:         url,
+		cfg:         cfg,
 		log:         log,
 	}
 	b.init()
@@ -44,20 +44,22 @@ func New(url string, log *zerolog.Logger) *Broker {
 
 func (b *Broker) init() {
 	opts := paho.NewClientOptions()
-	opts.AddBroker(b.url)
+	opts.AddBroker(b.cfg.BrokerURL())
 	opts.ClientID = "gateway-service-sg"
 	// opts.AutoReconnect = true
 	opts.DefaultPublishHandler = func(c paho.Client, m paho.Message) {
 		b.log.Warn().Str("topic", m.Topic()).Msg("Received message from the unexpected topic")
 	}
 	opts.OnConnect = func(client paho.Client) {
-		b.log.Info().Str("URL", b.url).Msg("Connected")
+		b.log.Info().Str("URL", b.cfg.BrokerURL()).Msg("Connected")
 		b.subscribeInternal()
 	}
 	opts.OnConnectionLost = func(client paho.Client, err error) {
-		b.log.Info().Str("URL", b.url).Msg("Disconnected")
+		b.log.Info().Str("URL", b.cfg.BrokerURL()).Msg("Disconnected")
 		b.Connect()
 	}
+	opts.Username = b.cfg.BrokerUsername()
+	opts.Password = b.cfg.BrokerPassword()
 	b.client = paho.NewClient(opts)
 	// mqtt.ERROR = log.New(os.Stdout, "E", 0)
 	// mqtt.CRITICAL = log.New(os.Stdout, "C", 0)
@@ -67,7 +69,7 @@ func (b *Broker) init() {
 
 func (b *Broker) Connect() error {
 	var err error
-	b.log.Info().Str("URL", b.url).Msg("Connecting")
+	b.log.Info().Str("URL", b.cfg.BrokerURL()).Msg("Connecting")
 	if !b.client.IsConnectionOpen() {
 		token := b.client.Connect()
 		ok := token.WaitTimeout(tmMqttConnWait)
@@ -76,10 +78,10 @@ func (b *Broker) Connect() error {
 			err = fmt.Errorf("Connection timeout %d ms", tmMqttConnWait)
 		}
 	} else {
-		b.log.Info().Msgf("Excessive connect request, aslready connected '%s'", b.url)
+		b.log.Info().Msgf("Excessive connect request, aslready connected '%s'", b.cfg.BrokerURL())
 	}
 	if err != nil {
-		b.log.Err(err).Str("URL", b.url).Msg("Fail to connect")
+		b.log.Err(err).Str("URL", b.cfg.BrokerURL()).Msg("Fail to connect")
 	}
 
 	// if e := b.Publish("/clousel", dispatcher.CreateRequestPlay("123", "321"), 0); e != nil {

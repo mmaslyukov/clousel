@@ -26,11 +26,14 @@ HTTP 200
 hurl.exe --variable p1=<specify> --variable p2=<specify> --variable p3=<specify> scripts\hurl\path-to-req.hurl
 ```
 
+## HTTP REUESTS
+
+
 ### REGISTER A COMPANY
 ```ps1
 hurl.exe --variable cname=default --variable email=default@mail.org --variable password=1234 scripts\hurl\company\business_register.hurl
 ```
-LOGIN AS A COMPANY
+### LOGIN AS A COMPANY
 ```ps1
 hurl.exe --variable cname=default --variable password=1234 scripts\hurl\company\business_login.hurl
 
@@ -42,7 +45,7 @@ $env:BTOCKEN="L3dPLURQRT2cdbkRo/BvJg=="
 
 ### ADD SECRET KEYS AS A COMPANY
 ```ps1
-hurl.exe --variable tocken=$(echo $env:BTOCKEN)  --variable skey=sk_test_51PajXoRubpSlGSkxRr6WpEzbhLnZH7fV8ly3yhPNWKsHG7ArdsKQAjVXj6iftvOIiBs5Prp5732t4YbBTQ54v9zI00tAccea11 --variable prodid=prod_RFg9LDezJP3edQ scripts\hurl\company\business_keys.hurl
+hurl.exe --variable tocken=$(echo $env:BTOCKEN)  --variable skey=rk_test_51PajXoRubpSlGSkxjkTLxXvVYhBpBDGEYjfwAwLDEY71FwqbrjX1Umnx6q0kcimmiu9q41J5O2J64Bhg0OyW6neC00uCUisHI7 --variable prodid=prod_RFg9LDezJP3edQ scripts\hurl\company\business_keys.hurl
 ```
 
 ### ADD MACHINE
@@ -113,3 +116,31 @@ hurl.exe --variable tocken=$(echo $env:UTOCKEN) --variable eid=956fc277-2fce-40d
 ```ps1
 stripe.exe listen --forward-to localhost:4321/webhook/dev
 ```
+
+
+
+# NGINX CONFIGURATION
+## HTTPS SUPPORT
+Certbot `https://certbot.eff.org/instructions?ws=nginx&os=snap`
+Easy to run with nginx
+`sudo snap install --classic certbot`
+configure NGINX firectly
+`sudo certbot --nginx`
+or just get certs
+`sudo certbot certonly --nginx`
+
+## REDIRECT HTTPS->HTTP
+### Nginx reverse proxy redirection configuration:
+
+```conf
+  location / {
+    proxy_pass http://localhost:4321;
+    proxy_set_header Host $host;
+  }
+```
+
+### CERTBOT
+Certbot `https://certbot.eff.org/instructions?ws=nginx&os=snap`  
+Easy to run with nginx  `sudo snap install --classic certbot`  
+configure NGINX firectly `sudo certbot --nginx` or just get certs `sudo certbot certonly --nginx`
+

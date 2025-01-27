@@ -3,7 +3,9 @@ package stripe
 import (
 	"clousel/core/client"
 	"clousel/lib/fault"
+	"slices"
 
+	"github.com/rs/zerolog"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"github.com/stripe/stripe-go/v72/price"
@@ -22,14 +24,17 @@ func (l *CheckoutSessionWrapper) Id() string {
 }
 
 type StripeGateway struct {
+	log *zerolog.Logger
 }
 
-func StripeGatewayCreate() *StripeGateway {
-	return &StripeGateway{}
+func StripeGatewayCreate(log *zerolog.Logger) *StripeGateway {
+	return &StripeGateway{
+		log: log,
+	}
 }
 
-func (s *StripeGateway) ReadPriceListByProdId(skey string, prodId string, limit int) ([]client.PriceTag, fault.IError) {
-	var priceArray []client.PriceTag
+func (s *StripeGateway) ReadPriceListByProdId(skey string, prodId string, limit int) ([]*client.PriceTag, fault.IError) {
+	var priceArray []*client.PriceTag
 	var ierr fault.IError
 
 	params := &stripe.PriceListParams{}
@@ -47,12 +52,16 @@ func (s *StripeGateway) ReadPriceListByProdId(skey string, prodId string, limit 
 		} else {
 			tickets = 1
 		}
-
-		priceArray = append(priceArray, client.PriceTag{
+		priceArray = append(priceArray, &client.PriceTag{
 			PriceId: result.Price().ID,
 			Amount:  int(result.Price().UnitAmount),
 			Tickets: tickets,
 		})
+
+		slices.SortFunc(priceArray, func(a, b *client.PriceTag) int {
+			return a.Amount - b.Amount
+		})
+
 	}
 	if result.Err() != nil {
 		ierr = fault.New(EStripeReadPrice).Msgf("%s", result.Err())

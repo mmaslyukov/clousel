@@ -7,6 +7,7 @@ import (
 	"clousel/core/machine"
 	"clousel/lib/fault"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/mail"
@@ -59,8 +60,9 @@ func Listen(
 	http.HandleFunc("/business/login", func(w http.ResponseWriter, r *http.Request) { businessLogin(w, r, api, log) })
 	http.HandleFunc("/business/skey", func(w http.ResponseWriter, r *http.Request) { businessAssignSecKey(w, r, api, log) })
 	http.HandleFunc("/machine/add", func(w http.ResponseWriter, r *http.Request) { machineAdd(w, r, api, log) })
-	http.HandleFunc("/machine/get", func(w http.ResponseWriter, r *http.Request) { machineGet(w, r, api, log) })
 	http.HandleFunc("/machine/update", func(w http.ResponseWriter, r *http.Request) { machineUpdate(w, r, api, log) })
+	http.HandleFunc("/machine/get", func(w http.ResponseWriter, r *http.Request) { machineGet(w, r, api, log) })
+	http.HandleFunc("/machine/getpub", func(w http.ResponseWriter, r *http.Request) { machineGetPub(w, r, api, log) })
 	http.HandleFunc("/machine/play", func(w http.ResponseWriter, r *http.Request) { machinePlay(w, r, api, log) })
 	http.HandleFunc("/machine/poll", func(w http.ResponseWriter, r *http.Request) { machinePoll(w, r, api, log) })
 	http.HandleFunc("/client/register", func(w http.ResponseWriter, r *http.Request) { clientRegister(w, r, api, log) })
@@ -69,7 +71,7 @@ func Listen(
 	http.HandleFunc("/client/buy", func(w http.ResponseWriter, r *http.Request) { clientCheckout(w, r, api, log) })
 	http.HandleFunc("/client/price", func(w http.ResponseWriter, r *http.Request) { clientReadPrice(w, r, api, log) })
 	http.HandleFunc("/webhook/{companyId}", func(w http.ResponseWriter, r *http.Request) { severWebhookWithCompanyId(w, r, api, log) })
-	http.HandleFunc("/webhook/dev", func(w http.ResponseWriter, r *http.Request) { severWebhookDev(w, r, api, log, cfg) })
+	http.HandleFunc("/webhook/dev", func(w http.ResponseWriter, r *http.Request) { serverWebhookDev(w, r, api, log, cfg) })
 	log.Info().Str("URL", cfg.ServerAddress()).Msg("Listening...")
 	http.ListenAndServe(cfg.ServerAddress(), nil)
 }
@@ -102,12 +104,18 @@ func businessRegister(w http.ResponseWriter, r *http.Request, api *ControllerApi
 		companyName := r.PostFormValue("CompanyName")
 		email := r.PostFormValue("Email")
 		password := r.PostFormValue("Password")
-		if _, err := mail.ParseAddress(email); err != nil || len(password) < 4 {
-			http.Error(w, err.Error(), http.StatusNotAcceptable)
+		if len(companyName) == 0 || len(email) == 0 || len(password) == 0 {
+			http.Error(w, "Invalid query parameters", http.StatusNotAcceptable)
 			break
 		}
 
-		if err := api.business.Register(companyName, email, password); err != nil {
+		if _, e := mail.ParseAddress(email); e != nil || len(password) < 4 {
+			http.Error(w, e.Error(), http.StatusNotAcceptable)
+			break
+		}
+
+		var err fault.IError
+		if err = api.business.Register(companyName, email, password); err != nil {
 			log.Err(err).Msgf("%s: Fail to register new Business with, username:'%s', email:'%s'", fn,
 				companyName, email)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -115,6 +123,21 @@ func businessRegister(w http.ResponseWriter, r *http.Request, api *ControllerApi
 		}
 		log.Info().Msgf("%s: Registered new business with, username:'%s', email:'%s'", fn,
 			companyName, email)
+		var entry *business.BusinessEntry
+		if entry, err = api.business.Login(companyName, password); err != nil {
+			log.Err(err).Msgf("%s: Fail to login for business with, companyName:'%s'", fn, companyName)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			break
+		}
+		t := TockenCreate(entry, TockenRoleBusiness)
+		api.tockenStore.Add(t)
+		log.Info().Msgf("%s: Logged in for business with, companyName:'%s'", fn, companyName)
+		writeJSON(w, struct {
+			Tocken string `json:"Tocken"`
+		}{
+			Tocken: t.Base64().Str(),
+		})
+
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -131,7 +154,10 @@ func businessLogin(w http.ResponseWriter, r *http.Request, api *ControllerApi, l
 		var entry *business.BusinessEntry
 		companyName := r.URL.Query().Get("CompanyName")
 		password := r.URL.Query().Get("Password")
-
+		if len(companyName) == 0 || len(password) == 0 {
+			http.Error(w, "Invalid query parameters", http.StatusNotAcceptable)
+			break
+		}
 		if entry, err = api.business.Login(companyName, password); err != nil {
 			log.Err(err).Msgf("%s: Fail to login for business with, companyName:'%s'", fn, companyName)
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -156,6 +182,7 @@ func businessAssignSecKey(w http.ResponseWriter, r *http.Request, api *Controlle
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			break
 		}
+
 		var tockenProvided ITockenBase64
 		var err fault.IError
 		log.Debug().Str("TockenQuery", r.PostFormValue("Tocken")).Send()
@@ -216,6 +243,12 @@ func machineAdd(w http.ResponseWriter, r *http.Request, api *ControllerApi, log 
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			break
 		}
+		if tocken.Role() == TockenRoleClient {
+			err = fault.New(ERouterNotAllowed).Msgf("No allowed to make changes")
+			log.Err(err).Msgf("%s", fn)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			break
+		}
 
 		var cost int
 		if c, e := strconv.Atoi(r.PostFormValue("Cost")); e != nil {
@@ -267,6 +300,12 @@ func machineGet(w http.ResponseWriter, r *http.Request, api *ControllerApi, log 
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			break
 		}
+		if tocken.Role() == TockenRoleClient {
+			err = fault.New(ERouterNotAllowed).Msgf("No allowed to make changes")
+			log.Err(err).Msgf("%s", fn)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			break
+		}
 		var machid *uuid.UUID = nil
 		if queryMachId := r.URL.Query().Get("MachId"); len(queryMachId) != 0 {
 			if id, e := uuid.Parse(r.URL.Query().Get("MachId")); e == nil {
@@ -279,6 +318,7 @@ func machineGet(w http.ResponseWriter, r *http.Request, api *ControllerApi, log 
 		if st := r.URL.Query().Get("Status"); len(st) != 0 {
 			status = &st
 		}
+
 		// companyId, _ := uuid.Parse("a055963c-d4d8-4be3-8fac-f7a1d7cf1d59")
 		companyId := tocken.Auth().Id()
 		selector := &MachineSelector{
@@ -294,6 +334,66 @@ func machineGet(w http.ResponseWriter, r *http.Request, api *ControllerApi, log 
 		}
 		log.Info().Msgf("%s: Successfully Prepared list of machines", fn)
 		writeJSON(w, entries)
+	}
+}
+
+func machineGetPub(w http.ResponseWriter, r *http.Request, api *ControllerApi, log *zerolog.Logger) {
+	setupCORS(&w)
+	const fn = "Router.machineGetPub"
+	for ok := true; ok; ok = false {
+		if r.Method != "GET" {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			break
+		}
+
+		var err fault.IError
+		var tockenProvided ITockenBase64
+		if tockenProvided, err = TockenCreateFromBase64String(r.URL.Query().Get("Tocken")); err != nil {
+			log.Error().Msgf("%s: Fail to parse tocken from query string, error:%s", fn, err.Full())
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			break
+		}
+		if _, err = api.tockenStore.Find(tockenProvided); err != nil {
+			log.Err(err).Msgf("%s: Fail to find tocken with id:'%s'", fn, tockenProvided.Str())
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			break
+		}
+		var machid *uuid.UUID = nil
+		if queryMachId := r.URL.Query().Get("MachId"); len(queryMachId) != 0 {
+			if id, e := uuid.Parse(r.URL.Query().Get("MachId")); e == nil {
+				machid = &id
+			} else {
+				log.Err(e).Msgf("%s: Fail to parse machine id", fn)
+				http.Error(w, e.Error(), http.StatusInternalServerError)
+				break
+			}
+		}
+
+		selector := &MachineSelector{
+			machId: machid,
+		}
+		var entries []*machine.MachineEntry
+		if entries, err = api.machine.ReadMachineEntriesBySelector(selector); err != nil {
+			log.Err(err).Msgf("%s: Fail to read machine entries", fn)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
+		if len(entries) == 0 {
+			log.Error().Msgf("%s: Machine not '%s' found", fn, machid)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			break
+		}
+		log.Info().Msgf("%s: Successfully Prepared list of machines", fn)
+
+		writeJSON(w, struct {
+			MachId   uuid.UUID `json:"MachId"` //PK
+			GameCost int       `json:"Cost"`
+			Status   string    `json:"Status"`
+		}{
+			MachId:   entries[0].MachId,
+			GameCost: entries[0].GameCost,
+			Status:   entries[0].Status,
+		})
 	}
 }
 
@@ -461,23 +561,44 @@ func clientRegister(w http.ResponseWriter, r *http.Request, api *ControllerApi, 
 			break
 		}
 		username := r.PostFormValue("Username")
-		comapnyName := r.PostFormValue("Company")
+		companyName := r.PostFormValue("Company")
 		email := r.PostFormValue("Email")
 		password := r.PostFormValue("Password")
+
+		if len(username) == 0 || len(companyName) == 0 || len(email) == 0 || len(password) == 0 {
+			http.Error(w, "Invalid query parameters", http.StatusNotAcceptable)
+			break
+		}
+
 		if _, err := mail.ParseAddress(email); err != nil || len(password) < 4 {
 			http.Error(w, err.Error(), http.StatusNotAcceptable)
 			break
 		}
 
-		if err := api.client.Register(username, email, password, comapnyName); err != nil {
+		if err := api.client.Register(username, email, password, companyName); err != nil {
 			log.Err(err).Msgf("%s: Fail to register new client with, username:'%s', email:'%s'", fn,
 				username, email)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusConflict)
 			break
 		}
 		log.Info().Msgf("%s: Registered new client with, username:'%s', email:'%s'", fn,
 			username, email)
-		w.WriteHeader(http.StatusOK)
+		var err fault.IError
+		var entry *client.ClientEntry
+		if entry, err = api.client.Login(username, password); err != nil {
+			serr := fmt.Sprintf("Username '%s' isn't found", username)
+			log.Err(err).Msgf("%s: %s", fn, serr)
+			http.Error(w, serr, http.StatusUnauthorized)
+			break
+		}
+		t := TockenCreate(entry, TockenRoleClient)
+		api.tockenStore.Add(t)
+		log.Info().Msgf("%s: Logged in for client with, username:'%s'", fn, username)
+		writeJSON(w, struct {
+			Tocken string `json:"Tocken"`
+		}{
+			Tocken: t.Base64().Str(),
+		})
 	}
 }
 
@@ -485,18 +606,32 @@ func clientLogin(w http.ResponseWriter, r *http.Request, api *ControllerApi, log
 	setupCORS(&w)
 	const fn = "Router.clientLogin"
 	for ok := true; ok; ok = false {
-		if r.Method != "GET" {
+		if r.Method != "POST" {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			break
 		}
+		username := r.PostFormValue("Username")
+		password := r.PostFormValue("Password")
+
+		// if r.Method != "GET" {
+		// 	http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		// 	break
+		// }
+		// username := r.URL.Query().Get("Username")
+		// password := r.URL.Query().Get("Password")
+
 		var err fault.IError
 		var entry *client.ClientEntry
-		username := r.URL.Query().Get("Username")
-		password := r.URL.Query().Get("Password")
+
+		if len(username) == 0 || len(password) == 0 {
+			http.Error(w, "Invalid query parameters", http.StatusNotAcceptable)
+			break
+		}
 
 		if entry, err = api.client.Login(username, password); err != nil {
-			log.Err(err).Msgf("%s: Fail to login for client with, username:'%s'", fn, username)
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			serr := fmt.Sprintf("Username '%s' isn't found", username)
+			log.Err(err).Msgf("%s: %s", fn, serr)
+			http.Error(w, serr, http.StatusUnauthorized)
 			break
 		}
 		t := TockenCreate(entry, TockenRoleClient)
@@ -583,6 +718,11 @@ func clientCheckout(w http.ResponseWriter, r *http.Request, api *ControllerApi, 
 		var cs client.ISession
 		home := r.URL.Query().Get("Home")
 		priceId := r.URL.Query().Get("PriceId")
+		if len(home) == 0 || len(priceId) == 0 {
+			http.Error(w, "Invalid query parameters", http.StatusNotAcceptable)
+			break
+		}
+
 		if cs, err = api.client.BuyTickets(tocken.Auth().Id(), priceId, home); err != nil {
 			log.Error().Msgf("%s: Fail to execue buy tickets function %s", fn, err.Full())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -619,7 +759,7 @@ func clientReadPrice(w http.ResponseWriter, r *http.Request, api *ControllerApi,
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			break
 		}
-		var pts []client.PriceTag
+		var pts []*client.PriceTag
 		if pts, err = api.client.ReadPriceOptions(tocken.Auth().Id()); err != nil {
 			log.Error().Msgf("%s: %s", fn, err.Full())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -629,8 +769,8 @@ func clientReadPrice(w http.ResponseWriter, r *http.Request, api *ControllerApi,
 	}
 }
 
-func severWebhookDev(w http.ResponseWriter, r *http.Request, api *ControllerApi, log *zerolog.Logger, cfg IConfigRouter) {
-	const fn = "Router.severWebhookDev"
+func serverWebhookDev(w http.ResponseWriter, r *http.Request, api *ControllerApi, log *zerolog.Logger, cfg IConfigRouter) {
+	const fn = "Router.serverWebhookDev"
 
 	setupCORS(&w)
 	for ok := true; ok; ok = false {
@@ -644,7 +784,7 @@ func severWebhookDev(w http.ResponseWriter, r *http.Request, api *ControllerApi,
 			log.Err(err).Msgf("%s:", fn)
 			break
 		}
-		if res := severWebhookCommon(w, r, api, log, b, cfg.WebhookKey()); res == false {
+		if res := serverWebhookCommon(w, r, api, log, b, cfg.WebhookKey()); res == false {
 			break
 		}
 		writeJSON(w, nil)
@@ -683,21 +823,21 @@ func severWebhookWithCompanyId(w http.ResponseWriter, r *http.Request, api *Cont
 			break
 		}
 
-		if res := severWebhookCommon(w, r, api, log, b, whkey); res == false {
+		if res := serverWebhookCommon(w, r, api, log, b, whkey); res == false {
 			break
 		}
 		writeJSON(w, nil)
 	}
 }
 
-func severWebhookCommon(w http.ResponseWriter, r *http.Request, api *ControllerApi, log *zerolog.Logger, array []byte, whkey string) bool {
-	const fn = "Router.severWebhookCommon"
+func serverWebhookCommon(w http.ResponseWriter, r *http.Request, api *ControllerApi, log *zerolog.Logger, array []byte, whkey string) bool {
+	const fn = "Router.serverWebhookCommon"
 	for ok := true; ok; ok = false {
 
 		event, err := webhook.ConstructEvent(array, r.Header.Get("Stripe-Signature"), whkey)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			log.Err(err).Msgf("%s: Fail to construct event", fn)
+			log.Err(err).Msgf("%s: Fail to construct event, using key: '%s'", fn, whkey)
 			return false
 		}
 

@@ -21,7 +21,7 @@ const emit = defineEmits(["qrDecoded"])
 onMounted(() => {
     console.log("QRScanner mounted")
 
-    scanner = new Html5Qrcode("qr-reader");
+    // scanner = new Html5Qrcode("qr-reader");
 })
 watch(props, async () => {
     /* ... */
@@ -63,6 +63,7 @@ async function startScaner() {
 
     // If you want to prefer front camera
     // await scanner.start({ facingMode: "user" }, config, qrCodeSuccessCallback, qrCodeErrorCallback)
+    scanner = new Html5Qrcode("qr-reader");
     await scanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, qrCodeErrorCallback)
     const observerConfig = { childList: true, subtree: true };
     const observerQRReader = new MutationObserver(callbackQRReader);
@@ -75,9 +76,10 @@ async function stopScaner() {
     if (scanner != null && scannerRunning == true) {
         loading.value = false
         scannerRunning = false
-        scanner.pause()
+        // scanner.pause()
         await scanner.stop()
         scanner.clear()
+        scanner = null
         console.log("Stopped QR Scanner")
     }
 }

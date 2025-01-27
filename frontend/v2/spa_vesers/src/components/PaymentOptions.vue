@@ -3,8 +3,8 @@
         <div id="po-options">
             <div style="margin-left: 10px;"></div>
             <div v-for="(item, i)  in props.details" :key=i style="display:flex">
-                <input type="radio" :id="'price-option-'+i" name="radioFruit" :value="item.prodId">
-                <label :for="'price-option-'+i" class="po-prod-p" @click="updateInfoData(item.tickets, item.price, item.prodId)">
+                <input type="radio" :id="'price-option-'+i" name="radioFruit" :value="item.priceId">
+                <label :for="'price-option-'+i" class="po-prod-p" @click="updateInfoData(item.tickets, item.price, item.priceId)">
                     <span style="display: block; ">
                         <div style="display: flex; flex-direction: row; height: 30px;">
                             <p id="po-prod-tn" style="margin:0; margin-top: 10px; margin-left: 6px; width:20px; text-align: right; "
@@ -60,13 +60,13 @@ const info = reactive({
 var selectedPriceOption={
     price:Number,
     tickets: Number,
-    priodId:String,
+    priceId:String,
 }
 onMounted(() => {
     let po = document.getElementById("price-option-0");
     if (po != null) {
         po.checked = true
-        updateInfoData(props.details[0].tickets, props.details[0].price, props.details[0].prodId)
+        updateInfoData(props.details[0].tickets, props.details[0].price, props.details[0].priceId)
     }
 })
 function calculatePricePerTicket(tickets, price) {
@@ -75,7 +75,7 @@ function calculatePricePerTicket(tickets, price) {
     }
     return (price / tickets).toFixed(2)
 }
-function updateInfoData(tickets, price, prodId) {
+function updateInfoData(tickets, price, priceId) {
     info.price = price
     let maxPricePerTicket = 0    
     for (let o of props.details) {
@@ -86,7 +86,7 @@ function updateInfoData(tickets, price, prodId) {
     info.saved = (maxPricePerTicket * tickets - info.ppt * tickets).toFixed(2)
     selectedPriceOption.price = price
     selectedPriceOption.tickets = tickets
-    selectedPriceOption.prodId = prodId
+    selectedPriceOption.priceId = priceId
 }
 
 // function onBuyClicked() {

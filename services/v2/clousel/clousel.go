@@ -25,7 +25,7 @@ func main() {
 	repoCompany := repo.Company.New(drv, log)
 	repoMachine := repo.Machine.New(drv, log)
 	repoUser := repo.User.New(drv, log)
-	stripe := stripe.StripeGatewayCreate()
+	stripe := stripe.StripeGatewayCreate(log)
 	ipc := ipc.IpcCreate(config, log)
 	// machBaron := machine.BarounessCreate(log)
 	domainBusiness := business.BusinessCreate(config, repoCompany, stripe, log)

@@ -2,7 +2,7 @@
     <div id="header">
         <div id="header_toolbar">
             <div id="header_icon">
-                <canvas id="header_icon_canvas" width="70px" height="70px">
+                <canvas id="header_icon_canvas" width="70px" height="70px" @click="logoClicked">
                 </canvas>
             </div>
             <div id="header_balance">
@@ -29,7 +29,7 @@ import { Logo } from './Logo.js'
 import { CanvasButtonRefill } from './CanvasButton.js'
 import { HSLColor } from './HSLColor.js'
 
-const emit = defineEmits(["poChanged"])
+const emit = defineEmits(["poChanged", "logoClicked"])
 const tickets = defineProps(['balance', 'purchased'])
 var buttonArray = []
 var buttonOpenOptions = null
@@ -64,6 +64,11 @@ function registerClickers() {
         emit("poChanged", b.isEnbaled())
         });
     }
+}
+
+function logoClicked() {
+    emit("logoClicked")
+    // console.log("logo")
 }
 </script>
 

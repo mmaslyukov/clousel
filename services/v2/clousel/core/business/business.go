@@ -104,7 +104,7 @@ func (b *Business) AssignKeys(companyId uuid.UUID, skey string, prodId string) f
 func (b *Business) ReadWhkey(companyId uuid.UUID) (whkey string, err fault.IError) {
 	const fn = "Core.Business.ReadWhkey"
 	var entry *BusinessEntry
-	if entry, err = b.repo.ReadBusinessEntryById(companyId); err != nil {
+	if entry, err = b.repo.ReadBusinessEntryById(companyId); err == nil {
 		if entry.Whkey != nil {
 			whkey = *entry.Whkey
 		} else {

@@ -1,5 +1,5 @@
 {
-  "name": "spa_vesers",
+  "name": "vesers",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,6 +8,8 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "axios": "^1.7.9",
+    "cookiejar": "^2.1.4",
     "core-js": "^3.8.3",
     "html5-qrcode": "^2.3.8",
     "vue": "^3.2.13",

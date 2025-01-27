@@ -65,14 +65,24 @@ func (c *Client) Login(username string, password string) (*ClientEntry, fault.IE
 	const fn = "Core.Client.Login"
 	var err fault.IError
 	var entry *ClientEntry
-	entry, err = c.repoGen.ReadClientEntryByName(username)
-	pknown := pswd.PasswordHasedBase64Create(entry.Password)
-	if !pswd.PasswordPlainCreate(password).Hash().Encode().Equal(pknown) {
-		err = fault.New(EClientPasswordMismatch).Msg("Wrong password")
-		entry = nil
-		c.log.Err(err).Msgf("%s: Fail %s to login", fn, username)
-	} else {
-		c.log.Info().Msgf("%s: Success %s logged in", fn, username)
+	for ok := true; ok; ok = false {
+		if len(username) == 0 || len(password) == 0 {
+			err = fault.New(EClientInvalidValue).Msg("Either companyName or password is empty")
+			break
+		}
+		if entry, err = c.repoGen.ReadClientEntryByName(username); err != nil {
+			err = fault.New(EClientClientNotFound).Err(err).Msgf("Client '%s' not found", username)
+			c.log.Error().Str("Error", err.Full()).Send()
+			break
+		}
+		pknown := pswd.PasswordHasedBase64Create(entry.Password)
+		if !pswd.PasswordPlainCreate(password).Hash().Encode().Equal(pknown) {
+			err = fault.New(EClientPasswordMismatch).Msg("Wrong password")
+			entry = nil
+			c.log.Err(err).Msgf("%s: Fail %s to login", fn, username)
+			break
+		}
+		c.log.Info().Msgf("%s: %s logged in", fn, username)
 	}
 	return entry, err
 }
@@ -156,7 +166,7 @@ func (c *Client) ApplyPaymentResults(sessionId string, status PaymentStatus) (er
 	return err
 }
 
-func (c *Client) ReadPriceOptions(userId uuid.UUID) (tags []PriceTag, err fault.IError) {
+func (c *Client) ReadPriceOptions(userId uuid.UUID) (tags []*PriceTag, err fault.IError) {
 	const fn = "Core.Client.ReadPriceOptions"
 	for ok := true; ok; ok = false {
 		var entry *ClientEntry

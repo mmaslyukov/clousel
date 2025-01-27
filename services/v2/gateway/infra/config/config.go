@@ -5,6 +5,8 @@ import "time"
 const (
 	sqlitePath       = "carousel.db"
 	mqttUrl          = "tcp://192.168.0.150:1883"
+	mqttUsername     = "gateway"
+	mqttPassword     = "My6at3w@y"
 	serverDest       = ":8081"
 	rootTopicCloud   = "/clousel/cloud"
 	rootTopicCaursel = "/clousel/carousel"
@@ -61,12 +63,23 @@ func (c *Config) DatabseURL() string {
 func (c *Config) BrokerURL() string {
 	return mqttUrl
 }
+
+func (c *Config) BrokerUsername() string {
+	return mqttUsername
+}
+
+func (c *Config) BrokerPassword() string {
+	return mqttPassword
+}
+
 func (c *Config) RootTopicPub() string {
 	return rootTopicCloud
 }
+
 func (c *Config) RootTopicSub() string {
 	return rootTopicCaursel
 }
+
 func (c *Config) DefaultQOS() byte {
 	return qos
 }

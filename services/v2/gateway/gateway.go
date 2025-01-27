@@ -12,7 +12,7 @@ func main() {
 	var err error
 	log := logger.New()
 	cfg := config.New()
-	mqtt := broker.New(cfg.BrokerURL(), log)
+	mqtt := broker.New(cfg, log)
 	if err = mqtt.Connect(); err != nil {
 		log.Err(err).Msg("Fail to connect")
 	}

@@ -16,7 +16,7 @@
 
 /**
  * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"Req.Config.Read","CarId":"550e8400-e29b-41d4-a716-446655440000","SeqNum":1,"EvId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29"}'
- * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"Req.Config.Write","CarId":"550e8400-e29b-41d4-a716-446655440000","SeqNum":1,"EvtId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29", "Config":{"BrokerUrl":"mqtt://192.168.0.150:1883","BrokerUsername":"CLOUSEL","BrokerPassword":"123wqeqwsaddsa","CoinPulseCnt":2,"CoinPulseDur":100}}'
+ * mosquitto_pub -h 192.168.0.150 -p 1883 -t '/clousel/cloud/550e8400-e29b-41d4-a716-446655440000' -m '{"Type":"Req.Config.Write","CarId":"550e8400-e29b-41d4-a716-446655440000","SeqNum":1,"EvtId":"cedb3510-c87f-4f7d-a190-2f1f8412ff29", "Config":{"BrokerUrl":"mqtt://192.168.0.150:1883","BrokerUsername":"CLOUSEL","BrokerPassword":"1qasw23ed","CoinPulseCnt":2,"CoinPulseDur":100}}'
  */
 namespace service
 {

@@ -100,24 +100,24 @@ func (t *TokenBase64) Str() string {
 }
 
 type Tocken struct {
-	data IAuth
-	role Role
-	id   uuid.UUID
-	ts   time.Time
+	data    IAuth
+	role    Role
+	id      uuid.UUID
+	expires time.Time
 }
 
 func TockenCreate(auth IAuth, role Role) ITocken {
-	return &Tocken{id: uuid.New(), data: auth, role: role, ts: time.Now()}
+	return &Tocken{id: uuid.New(), data: auth, role: role, expires: time.Now().Add(tokenExpireTime)}
 }
 func (t *Tocken) Id() uuid.UUID {
 	return t.id
 }
 
 func (t *Tocken) Refresh() {
-	t.ts = time.Now()
+	t.expires = time.Now().Add(tokenExpireTime)
 }
 func (t *Tocken) IsExpired() bool {
-	return time.Since(t.ts) > tokenExpireTime
+	return time.Now().After(t.expires)
 }
 func (t *Tocken) Auth() IAuth {
 	return t.data

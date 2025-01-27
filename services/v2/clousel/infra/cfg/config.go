@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	wbhook     = "109.110.19.178:4321"
-	server     = "localhost:4321"
+	wbhook     = "clousel.fin-tech.com"
+	server     = ":4321"
 	sqlitePath = "clousel.db"
 
 	gameStartTm   = time.Second * 30
@@ -35,7 +35,7 @@ func (c *Config) ServerAddress() string {
 }
 
 func (c *Config) WebhookUrl(id string) string {
-	return fmt.Sprintf("http://%s/webhook/%s", wbhook, id)
+	return fmt.Sprintf("https://%s/webhook/%s", wbhook, id)
 }
 func (c *Config) GetNatsUrl() string {
 	return "localhost:4222"

@@ -22,10 +22,10 @@
             <span style="display: flex; flex-direction: row; ">
                 <p class="pc-font pc-bold" style="font-size: 22pt; text-align: right; margin:0; margin-right: 5px; " >{{ props.fee }}</p>
                 <p class="pc-font pc-bold" style="font-size: 22pt; margin:0;">Tickets</p>
-            </span> -->
+            </span> Not enought tickets-->
             <span>
-                <p v-show="!props.enable" class="pc-font"
-                    style="font-size: 10pt; color: #c14b1dff; margin:0; margin-top: 10px;">Not enought tickets</p>
+                <p class="pc-font"
+                    style="font-size: 10pt; color: #c14b1dff; margin:0; margin-top: 10px;">{{props.unableMsg}}</p>
             </span>
         </div>
         <div
@@ -42,7 +42,9 @@ const emit = defineEmits(["playClicked"])
 const props = defineProps({
     cost: Number,
     balance: Number,
-    enable: Boolean
+    enable: Boolean,
+    unable: Boolean,
+    unableMsg: String
 })
 onMounted(() => {
 })
